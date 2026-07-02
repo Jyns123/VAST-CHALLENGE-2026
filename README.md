@@ -1,263 +1,213 @@
-# 🔭 Causal Breach Observatory
+# HarborCrest — Investigative Visual Analytics Platform
+### VAST Challenge 2026 · Mini-Challenge 1 · TenantThread Embargo Breach
 
-**TenantThread — VAST Challenge 2026, Mini Challenge 1**  
-Sistema de visualización interactiva para analizar la filtración de información embargada del 5 de junio de 2046.
-
----
-
-## 📋 Descripción
-
-El **Causal Breach Observatory** es un sistema analítico de visualización en D3.js v7 compuesto por cinco vistas coordinadas ("linked views") y un panel narrativo con scoring de hipótesis. Permite reconstruir cómo se originó y propagó la filtración de información embargada sobre la fusión TTHR-Verdant a las 17:00 del 5 de junio de 2046 en la plataforma TenantThread.
-
-El diseño sigue los principios de rigor analítico del paper *Melody Way* (VAST 2025): toda codificación visual mapea a un atributo real del dataset (`MC1_final_00.json`), sin métricas fabricadas.
-
-El sistema está diseñado para dos audiencias:
-1. **Equipo legal**: evidencia clara, exportable, con cadenas causales trazables.
-2. **Analistas**: exploración de hipótesis rivales (H1: fallo del Judge, H2: coordinación deliberada, H3: presión sistémica).
+An investigation console (not a dashboard) for reconstructing how embargoed
+**Project HarborCrest** merger information reached the public **FleX** platform ~35
+minutes before the 6:00 PM, June 5 2046 embargo. Built with **D3.js v7**, plain HTML/CSS/JS.
 
 ---
 
-## 🚀 Cómo ejecutar
+## Quick start
 
-1. **Navega al directorio del proyecto:**
-   ```bash
-   cd mc1-2026
-   ```
+```bash
+# 1. (Re)generate the derived datasets from the raw JSON
+python3 scripts/transform.py
 
-2. **Inicia un servidor HTTP local** (necesario para cargar módulos ES6 y archivos JSON):
-   ```bash
-   # Python 3
-   python -m http.server 8000
+# 2. Serve statically
+python3 -m http.server 8000
 
-   # O con Node.js
-   npx http-server -p 8000
-
-   # O con PHP
-   php -S localhost:8000
-   ```
-
-3. **Abre en el navegador:**
-   ```
-   http://localhost:8000
-   ```
-
-### Despliegue en GitHub Pages
-
-El repositorio incluye un workflow en `.github/workflows/deploy.yml` para publicar el sitio estático en GitHub Pages sin proceso de build.
-
-1. Sube este proyecto a un repositorio de GitHub con rama `main`.
-2. En GitHub, ve a **Settings > Pages**.
-3. En **Source**, selecciona **GitHub Actions**.
-4. Haz push a `main` o ejecuta manualmente el workflow **Deploy static site to GitHub Pages**.
-
-La publicación servirá el contenido tal como está, incluyendo `index.html`, `css/`, `src/` y `MC1_final_00.json`.
-
----
-
-## 📁 Estructura del proyecto
-
-```
-mc1-2026/
-├── index.html              # Página principal con layout de 3 columnas
-├── README.md               # Este archivo
-├── MC1_final_00.json       # Dataset oficial del Mini Challenge 1
-├── MC1_EDA_VAST2026.ipynb  # Notebook EDA exploratorio
-├── css/
-│   └── styles.css          # Estilos globales (tema oscuro, layout, componentes)
-├── data/                   # Archivos derivados del EDA (referencia)
-│   ├── agents.json
-│   ├── channels.json
-│   ├── events.json
-│   └── messages.json
-└── src/
-    ├── main.js             # Orquestador: carga datos e inicializa vistas
-    ├── dataLoader.js       # Carga y transforma MC1_final_00.json
-    ├── state.js            # Estado global + D3 dispatch para coordinación
-    ├── filters.js          # Panel de filtros (izquierda)
-    ├── narrative.js        # Panel narrativo + Causal Lens (Simplex, Fingerprint, Hipótesis)
-    ├── v1-galaxy.js        # V1: Agent Causal Galaxy (radial)
-    ├── v2-timeline.js      # V2: Causal Timeline (multi-día)
-    ├── v3-egochain.js      # V3: Information Flow & Channel Migration
-    ├── v4-judgemap.js       # V4: Multidimensional Oversight Matrix
-    └── v5-pressure.js      # V5: Systemic Pressure Replay + Stock Price
+# 3. Open
+http://localhost:8000/index.html
 ```
 
----
-
-## 🎯 Las cinco vistas
-
-### V1: Agent Causal Galaxy
-**Qué hace:** ubica a cada agente según su activación temprana y su peso en la crisis.
-
-- **Ángulo** → ronda del primer evento crítico del agente.
-- **Anillo radial** → capa organizacional/rol (Compliance, Platform Trust, Legal, Senior Comms, Junior).
-- **Tamaño del nodo** → volumen total de mensajes.
-- **Color** → rol del agente.
-- **Halo rojo** → agente con alta implicación causal en el breach.
-
-**Pregunta analítica:** ¿Quiénes se activaron primero y quién acumuló mayor centralidad de riesgo?
-
-### V2: Causal Timeline
-**Qué hace:** reconstruye la secuencia causal completa de mayo-junio con severidad y eventos clave.
-
-- **Eje X** → fecha y hora (rango multi-día real del dataset).
-- **Eje Y** → severidad del evento.
-- **Estrellas** → eventos críticos por ronda.
-- **Conexiones** → tipo de vínculo causal/temático (incluye marcadores del Judge y del breach).
-- **Brush temporal** → filtra todas las vistas por ventana de tiempo.
-
-**Pregunta analítica:** ¿Qué secuencia concreta llevó al quiebre del embargo a las 17:00?
-
-### V3: Information Flow & Channel Migration
-**Qué hace:** visualiza cómo la información fluye entre canales de comunicación a lo largo de las rondas, revelando migraciones de contenido sensible desde canales privados hacia públicos.
-
-- **Eje X** → número de ronda (1–23).
-- **Eje Y** → canal, ordenado por nivel de privacidad (interno → privado → público).
-- **Tamaño de burbuja** → cantidad de mensajes en esa celda (canal × ronda).
-- **Color de burbuja** → sensibilidad promedio (escala `YlOrRd`: amarillo = baja, rojo = alta).
-- **Arcos curvos** → enlaces `responding_to` que cruzan canales (información que migra entre niveles de privacidad).
-- **Color de arco** → rojo si el contenido sensible cruza a un canal más público; gris si es flujo normal.
-- **Borde dorado** → la celda contiene menciones a la fusión (merger keywords).
-- **Bandas de fondo** → verde (internal), ámbar (private), rojo (public) para señalar zonas de riesgo.
-
-**Pregunta analítica:** ¿Cómo migró la información embargada desde canales internos/privados hacia canales públicos, y en qué rondas ocurrieron los saltos críticos?
-
-### V4: Multidimensional Oversight Matrix
-**Qué hace:** cruza canales y fases para evidenciar brechas de supervisión con codificación multivariable.
-
-- **Matriz** → canal (Y) × fase (X: Pre, Judge, Crisis, Post).
-- **Color de celda** → cobertura del Judge vs presión de blind spots.
-- **Tamaño de celda** → volumen de mensajes.
-- **Punto central** → tasa de mensajes sensibles.
-- **Borde punteado** → densidad de menciones de merger.
-- **Tooltip** → métricas completas (coverage, blind spots, sensible rate, merger rate, top agent).
-
-**Pregunta analítica:** ¿En qué combinación canal-fase se concentró el riesgo fuera de la cobertura del Judge?
-
-### V5: Systemic Pressure Replay
-**Qué hace:** descompone y anima la presión acumulada por ronda, con superposición del precio real de la acción TTHR.
-
-- **Área apilada** → componentes del pressure score derivados de datos reales.
-- **Componentes** → External Pressure (conteo mensajes urgentes), Channel Risk (riesgo promedio del canal), Semantic Risk (menciones merger + sensibilidad alta), Judge Gap (mensajes sensibles sin supervisión), Coordination (chats privados con merger), Embargo Proximity (cercanía temporal al breach).
-- **Línea azul punteada** → precio real de la acción $TTHR extraído de `market_snapshot.stock_price` ($38.70 → ~$18), con eje Y secundario en dólares.
-- **Controles Play/Pause/Reset** → replay temporal del deterioro del sistema.
-- **Línea vertical roja** → marca la ronda del breach (R22).
-
-**Pregunta analítica:** ¿Predomina una falla sistémica progresiva o un salto deliberado puntual? ¿Cómo correlaciona la presión interna con el desplome bursátil?
-
-### Panel narrativo (complemento analítico)
-Además de las 5 visualizaciones, el panel derecho integra un **MC1 Causal Lens** que resume evidencia multidimensional:
-
-- **Scenario Simplex (H1/H2/H3)** → posiciona el caso en un triángulo de hipótesis rivales.
-- **Phase Fingerprint** → intensidad de riesgo por fase (Pre/Judge/Crisis/Post).
-- **Scoreboard de hipótesis** → puntajes dinámicos según filtros activos.
+> The app loads JSON via `fetch`, so it must be served over HTTP (not `file://`).
+> `data/` already contains pre-built derived datasets, so step 1 is optional unless you
+> change the pipeline.
 
 ---
 
-## 🔗 Interactividad y vinculación
+## Project structure
 
-| Acción | Efecto |
-|--------|--------|
-| Click en agente (Galaxy) | Resalta en Judge Map, muestra detalles en panel narrativo |
-| Click en evento (Timeline) | Muestra evento en panel narrativo con mensajes relacionados |
-| Click en burbuja (V3) | Muestra mensajes del canal-ronda seleccionado |
-| Brush temporal (Timeline) | Filtra todas las vistas por rango de tiempo |
-| Filtros (izquierda) | Actualizan Galaxy, Timeline, Judge Map, Ego-chain |
-| Slider de presión (V5) | Muestra estado del sistema en cada ronda |
-| Play (V5) | Anima la evolución temporal de presión |
+```
+index.html        Single-page shell (header KPIs, control rail, inspector, 🧭 questions FAB)
+style.css         "Investigation console" dark theme
+app.js            D3 application — ONE condensed multi-layer view + evidence inspector
+scripts/
+  transform.py    Data transformation, feature engineering, scoring, NLP, graph metrics
+data/             Derived datasets (generated)
+  messages.json   912 communications, fully feature-engineered
+  rounds.json     23 environmental rounds (market, media, deadlines, activity features)
+  network.json    Agent nodes (centrality/brokerage) + targeted edges
+  actors.json     Per-agent behavioral profile + deviation scores
+  posts.json      77 public posts with leak-likelihood + coordination
+  events.json     12 curated causal events (E01–E12) with evidence links
+  meta.json       Agents, channels, lexicons, hypotheses, global stats
+docs/
+  risk_scoring_methodology.md   How every score is computed
+  nlp_methodology.md            Lexicon-based text features
+```
 
----
+## One view, many layers — the Behavioral Drift Braid
 
-## 🔍 Filtros disponibles
+Instead of tabs, the entire investigation is condensed into **one composited canvas**:
 
-- **Búsqueda textual**: busca en nombre de agente, contenido de mensaje, canal, tipo
-- **Agentes**: selección individual
-- **Roles**: legal, platform_trust, pr, social_media, pr_intern, intern, judge
-- **Canales**: comms_huddle, one_on_one_chat, side_huddle, official_post, personal_post, anonymous_post
-- **Fase**: pre-crisis (R1-R8), supervisión Judge (R9-R13), crisis (R14-R22), post-breach (R23)
-- **Tipo de mensaje**: broadcast, public_post, one_on_one_chat, side_huddle, action
-- **Semántico**: solo sensibles (≥4), solo menciones al merger
-- **Criticidad mínima**: slider 1–5
+| Layer | Investigative question it answers |
+|---|---|
+| **Drift threads** | Each agent is a thread travelling a vertical *covert→public posture ladder* (monitored huddle → 1:1 → covert side-huddle → official → personal → anonymous). Threads diving below the red **enforcement perimeter** are exposing content publicly. Thickness = volume. |
+| **▼ Post triangles** | Every public post drops a triangle into the zone it was published on; red-rimmed = embargo violation. Personal/anonymous triangles appearing for the first time on June 5 *are* the anomaly. |
+| **· Baseline lines** | Each agent's expected (pre-crisis) posture — the visual definition of "normal behavior" the threads deviate from. |
+| **∿ Covert arcs** | Who side-huddled with whom, per round (purple). The May 22 activation is the first early warning. |
+| **⚖ Judge gates** | Compliance interventions, colored by outcome (green = held, red = a violation followed) + the auto-detected **"JUDGE SILENT"** enforcement gap on crisis morning. |
+| **●→ Causal chain** | The curated events E01–E12 pinned to their actor's thread, with causal arrows; the **"⊘ ceiling warning ignored"** arrow (E09→E10) is the system's single point of failure. |
+| **Seismograph** | Composite anomaly score per round (flagged language + covert + boundary tests + violations) vs. pre-crisis +1σ/+2σ thresholds, with the $TTHR price and ∿/◆/✕ tick rows — leading indicators at a glance. |
+| **🧭 Key Questions** | Floating button (bottom-right): the 7 challenge questions; clicking one refocuses the braid (highlight, layers, time window) and shows the written answer with linked evidence. |
 
----
-
-## 🎨 Decisiones de diseño visual
-
-### Por qué estas codificaciones:
-- **Posición para tiempo**: es el canal visual más efectivo para datos ordinales/cuantitativos (Cleveland & McGill, 1984)
-- **Color para categorías**: distingue roles/tipos de agente de forma instantánea
-- **Tamaño para volumen**: escala cuadrática (`scaleSqrt`) asegura percepción proporcional del área
-- **Halo/anillo para riesgo**: señal redundante de alta saliencia que no interfiere con otros canales
-- **Tema oscuro**: reduce fatiga visual en sesiones analíticas prolongadas
-- **Escalas perceptualmente uniformes**: usamos `d3.scaleSequential` para asegurar que diferencias iguales en datos se perciban como diferencias iguales en color
-
-### Accesibilidad:
-- Tooltips con texto legible y alto contraste
-- Colores primarios diferenciados (verde/rojo/amarillo/azul/púrpura) — distinguibles incluso con deuteranomalía
-- Controles de filtro con etiquetas claras
-- Exportación en texto plano para lectores de pantalla
-
----
-
-## 📊 Fuente de datos oficial
-
-La visualización usa exclusivamente el archivo oficial del reto:
-
-- `MC1_final_00.json`
-
-El loader en `src/dataLoader.js` está en modo estricto:
-
-- Carga `MC1_final_00.json` desde la raíz del proyecto.
-- Si el archivo no existe o no tiene la estructura esperada (`rounds`), la app falla con error.
-- No hay fallback a datasets alternativos o mock.
-
-El archivo oficial se transforma en runtime al esquema que consumen las vistas (`agents`, `channels`, `events`, `messages`).
+**Linked interaction:** a single global filter state (actors · channels · evidence flags ·
+time window via brushing the braid · search) drives every layer simultaneously. Clicking any
+glyph, arc, gate, event, or hypothesis loads the underlying communications into the right-hand
+**Evidence Inspector**; clicking an agent's name at the right edge of the braid opens its
+behavioral profile (expected vs. observed channel mix).
 
 ---
 
-## ⚖️ Alineación con hipótesis del caso
+# Explicación del diseño (ES)
 
-| Hipótesis | Vistas que la abordan |
-|-----------|----------------------|
-| **Fallo del oversight del Judge** | V4 (blind spots por canal-fase), V3 (flujo sin intervención del Judge) |
-| **Coordinación deliberada** | V3 (arcos cross-channel entre canales privados), V1 (proximidad temporal de activación) |
-| **Presión sistémica** | V5 (curva de presión + stock price), V2 (eventos de presión en Timeline) |
-| **Cadena causal del breach** | V3 (migración canal privado → público), V2 (secuencia de eventos) |
-| **Señales tempranas** | V1 (primer evento de cada agente), V2 (eventos de severidad alta tempranos) |
+> *Las secciones siguientes —decisiones de diseño, justificación analítica y cómo cada
+> vista responde a las preguntas del reto— están redactadas en español, según lo
+> solicitado. Todo el código, la interfaz y la documentación técnica permanecen en inglés.*
+
+## 1. Decisiones de diseño
+
+**Una sola visualización condensada, no pestañas.** Toda la investigación vive en un único
+lienzo: la **Trenza de Deriva Conductual** (*Behavioral Drift Braid*). Cada agente es un
+hilo que recorre una escalera vertical de "postura comunicativa" (arriba = canal de equipo
+monitoreado; abajo = publicación anónima imposible de rastrear). Cruzar el **perímetro rojo
+de aplicación del embargo** significa que el contenido se hizo público. Sobre la misma
+trenza se componen capas activables: líneas base esperadas, arcos de coordinación
+encubierta, compuertas del Juez (verde = contuvo / rojo = siguió una violación), la cadena
+causal E01–E12 con flechas de decisión, y los triángulos de cada post público en la zona
+donde se publicó. Debajo, un **sismógrafo de indicadores tempranos** muestra cuándo el
+sistema "empezó a temblar" respecto a umbrales +1σ/+2σ pre-crisis.
+
+**No es un dashboard, es una plataforma de investigación.** La pantalla está organizada
+como una consola forense: una **barra de filtros global** a la izquierda, el lienzo de la
+trenza al centro y un **inspector de evidencia** persistente a la derecha. La idea rectora
+es que el analista nunca pierda el contexto: cualquier elemento que toque (un glifo, un
+nodo, una cinta, una celda, un evento o una hipótesis) deposita las comunicaciones
+subyacentes en el inspector, con las palabras clave resaltadas y el *razonamiento interno*
+del agente visible. Así se pasa siempre de la abstracción visual a la prueba textual.
+
+**Cross-filtering total con un único estado.** Existe una sola función `filtered()` que
+representa la verdad: el conjunto de mensajes que pasa todos los filtros (actores, canales,
+banderas de evidencia, ventana temporal y búsqueda). Todas las capas se redibujan desde
+ese conjunto, de modo que filtrar por "violación de embargo" o cepillar (*brush*) la
+ventana del 5 de junio atenúa simultáneamente hilos, triángulos, arcos y sismógrafo.
+
+**El botón 🧭 Key Questions (abajo a la derecha).** Las siete preguntas del reto viven en
+un panel flotante. Al pulsar una pregunta, la visualización se *reconfigura sola* para
+responderla (resalta agentes/eventos, activa las capas pertinentes, ajusta la ventana
+temporal) y despliega la respuesta escrita con su evidencia enlazada al inspector. La
+visualización no solo permite descubrir la respuesta: la demuestra.
+
+**Codificaciones elegidas por valor investigativo, no por costumbre.** Se evitaron los
+gráficos genéricos. Cada vista existe porque responde a una pregunta concreta del caso
+(ver §3). Por ejemplo, la *betweenness* se calcula **solo sobre aristas privadas/encubiertas**
+porque el equipo es una "clique de difusión" (todos emiten a `ALL`) y su betweenness global
+sería trivialmente cero; restringirla revela quién hace de puente real en las conversaciones
+reservadas.
+
+**Escala temporal por rondas, no por tiempo lineal.** Los datos están muestreados de forma
+irregular (diario antes de la crisis, horario el día de la crisis). Un eje de tiempo lineal
+aplastaría las 9 horas críticas frente a las dos semanas previas. Por eso el Storyline usa
+una escala ordinal por ronda: cada columna pesa igual y el día del incidente recibe el
+espacio que merece.
+
+**Estética de consola oscura.** El tema oscuro con acentos ámbar/rojo para el riesgo no es
+cosmético: dirige la atención del ojo hacia las violaciones (anillos rojos, marcas ✕) y
+hacia el canal encubierto (púrpura) entre cientos de comunicaciones rutinarias.
+
+## 2. Justificación analítica
+
+**Transformación de datos como núcleo.** El reto exige features derivadas; aquí son el
+motor de la investigación, no un adorno. `scripts/transform.py` genera: features temporales
+(*time-to-embargo*, antes/después, aceleración de actividad), features de red
+(in/out-degree, betweenness de Brandes, **brokerage** encubierto→público), features de
+publicación (*leak-likelihood*, *coordination*, sensibilidad), features de NLP por léxicos
+(merger / embargo / execution / compliance / governance) y features de comportamiento
+(desviación L1 respecto a la línea base, canales nuevos). La metodología completa está en
+`docs/risk_scoring_methodology.md` y `docs/nlp_methodology.md`.
+
+**Por qué léxicos y no *embeddings*.** En un contexto legal la explicabilidad supera a la
+sofisticación: cada bandera es auditable ("se marcó porque contiene literalmente
+*CivicLoom*"). El hallazgo metodológico propio del caso es el léxico de **governance**: la
+fuga no se produjo con afirmaciones directas del *merger*, sino mediante un goteo de
+"aclaraciones de gobernanza" *defendibles* (auditoría, consentimiento, control de acceso)
+que revelaron el acuerdo de forma incremental. Seguir ese lenguaje junto al de *merger*
+expone el gradiente: cada post era "defendible" en local mientras el agregado violaba el
+embargo.
+
+**Las puntuaciones son ayudas, no veredictos.** El medidor de hipótesis de la cabecera solo
+muestra el *balance de evidencia* (puntos a favor / total), nunca una conclusión de la
+máquina. La decisión la toma el analista, leyendo la prueba que cada hipótesis enlaza.
+
+**Qué dice la evidencia.** Convergen varias señales: (1) el `legal_agent` y el
+`social_media_agent` dominan el canal encubierto `side_huddle` y son exactamente los dos que
+ejecutan la violación (E10/E11); (2) el `legal_agent` adopta **dos canales públicos nuevos**
+(anónimo y personal) el día de la crisis —desviación conductual concreta—; (3) la fuga se
+construye como escalada de *boundary-testing* (E07→E08), no como un accidente difuso; (4) la
+única advertencia formal de "The Judge" (E09, 15:08) se emite y se ignora. La lectura más
+sostenible es **C (comportamiento emergente con núcleo deliberado)**: una fuga que emerge de
+la interacción entre agentes, canales y un cumplimiento que validaba cada pieza por separado,
+rematada por un acto final deliberado de confirmación. La plataforma, no obstante, deja al
+analista contrastar A, B y C con la prueba en mano.
+
+## 3. Cómo la visualización responde a las preguntas del reto
+
+Cada tarea del reto tiene su pregunta en el panel 🧭 (que reconfigura la trenza al pulsarla);
+aquí el mapeo capa → tarea:
+
+- **Tarea 1 — Reconstrucción de eventos y relaciones.** La cadena causal E01–E12 está
+  *anclada sobre los hilos de sus actores* con flechas de decisión entre eventos; los arcos
+  púrpura muestran las relaciones encubiertas que vehicularon la coordinación. El conducto
+  que sorteó el embargo se lee directamente en la geometría: `side-huddle → Legal/Social-Media
+  → triángulos personal/anónimo bajo el perímetro`.
+
+- **Tarea 2 — Análisis de comportamiento.** Las líneas punteadas de línea base definen el
+  comportamiento esperado de cada hilo; la deriva del 5 de junio se ve como divergencia
+  física respecto a esa línea. El perfil por agente (clic en su nombre) contrasta la mezcla
+  de canales esperada vs. observada.
+
+- **Tarea 3 — Indicadores tempranos.** El sismógrafo marca con ▲ las rondas pre-crisis que
+  superan +1σ (22 y 29 de mayo — exactamente la activación del canal sombra y el *faux pas*
+  de @Elena), y muestra el cruce del umbral +2σ horas antes de la brecha; los rombos ◆
+  naranjas señalan cada *boundary test* público.
+
+- **Tarea 4 — Comportamiento esperado vs. real.** Triángulos en zonas que un agente nunca
+  había usado (anónimo/personal de Legal) + la distancia hilo↔línea base + el score de
+  desviación del perfil responden cuándo, quién y qué.
+
+- **Tarea 5 — Comportamientos históricos similares.** Con la ventana temporal en mayo se ven
+  los ensayos a menor escala de la misma conducta: coordinación fuera del canal monitoreado
+  (E02–E03), un post público rozando lenguaje del merger el 22 de mayo, y el casi-incidente
+  del 29 de mayo.
+
+- **Tarea 6 — Falta de intervención previa.** Las compuertas ⚖ verdes (30 mayo–4 junio)
+  muestran al Juez conteniendo con éxito antes de la crisis (confianza falsa en el control);
+  la franja roja **JUDGE SILENT** expone el hueco de supervisión de la mañana crítica; y la
+  flecha roja "⊘ ceiling warning ignored" (E09→E10) muestra que el único poder del Juez era
+  consultivo.
+
+- **Objetivo (fuga deliberada vs. fallo sistémico).** El medidor de hipótesis A/B/C, los
+  filtros de evidencia y el inspector permiten construir y contrastar la conclusión sobre
+  prueba textual en lugar de aceptar una respuesta predefinida.
 
 ---
 
-## 🛠️ Tecnologías
+## Notes
 
-- **D3.js v7** (cargado desde CDN)
-- **ES6 Modules** (import/export nativos del navegador)
-- **CSS Grid / Flexbox** para layout responsivo
-- **Google Fonts**: Inter (400,600,700,800) + JetBrains Mono (400,700)
-- Sin frameworks adicionales (no React, no Vue, no Angular)
-
----
-
-## 📊 Datos del dataset
-
-El sistema usa exclusivamente `MC1_final_00.json` (dataset oficial MC1 VAST 2026):
-
-- **23 rondas** de simulación (R1–R23)
-- **912 mensajes** entre 7 agentes en 6 canales
-- **Período**: 17 mayo – 5 junio 2046
-- **Fases**: Pre-crisis (R1–R8), Supervisión Judge (R9–R13), Crisis (R14–R22), Post-breach (R23)
-
-Campos reales utilizados por las visualizaciones:
-- `agent_id`, `agent_role`, `agent_label` — identidad y rol del agente
-- `channel` — canal de comunicación (comms_huddle, one_on_one_chat, official_post, side_huddle, personal_post, anonymous_post)
-- `message_type` — broadcast, one_on_one_chat, public_post, side_huddle, action
-- `responding_to` — enlaces de respuesta entre mensajes (749/912 tienen este campo)
-- `internal_state` — {reacting, rationalizing, deliberating} del agente
-- `content` — texto completo del mensaje
-- `market_snapshot` — stock_price ($38.70 → ~$18), percent_change, sentiment (neutral → CRITICAL → RECOVERING)
-- `environment_context` — event_narrative, media_events, critical_deadlines
-
----
-
-## 📝 Licencia
-
-Proyecto académico para el VAST Challenge 2026.
+- All scores are reproducible from `scripts/transform.py`; see `docs/` for the full
+  methodology.
+- Braid posture = per-round channel average with public messages weighted ×3 (external
+  exposure should move the thread visibly); the composite anomaly formula is printed in
+  the seismograph header and is fully auditable.
+# VAST-CHALLENGE-2026
