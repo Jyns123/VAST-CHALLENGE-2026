@@ -1,198 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Causal Breach Observatory — TenantThread VAST 2026 MC1</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=2">
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentFlow — Investigative Case File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- ═══════════════════════════════════════════════════════════════
-       HEADER
-       ═══════════════════════════════════════════════════════════════ -->
-  <header id="app-header">
-    <div class="header-content">
-      <div class="header-left">
-        <div class="header-badge">CBO</div>
-        <div>
-          <h1>Causal Breach Observatory</h1>
-          <p class="subtitle">TenantThread — VAST Challenge 2026 MC1 · 5 de junio 2046, 17:00 Breach</p>
-        </div>
+<div id="app">
+
+  <!-- ============ HEADER ============ -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark">⌖</div>
+      <div class="brand-text">
+        <h1>AgentFlow</h1>
+        <span data-i18n="brand_sub">Investigative Visual Analytics · TenantThread Embargo Breach</span>
       </div>
-      <div class="header-hypothesis">
-        <span class="hyp-tag hyp-deliberada">H1 Deliberada</span>
-        <span class="hyp-tag hyp-sistemica">H2 Sistémica</span>
-        <span class="hyp-tag hyp-hibrida active">H3 Híbrida</span>
+      <div class="case-stamp">
+        <span class="cs-line">CASE</span>
+        <span class="cs-id">MC1·2026</span>
       </div>
     </div>
+
+    <nav id="tabs" class="tabs">
+      <button class="tab active" data-view="view-main" data-i18n="tab_braid">Drift Braid</button>
+      <button class="tab" data-view="view-balance" data-i18n="tab_balance">Hypothesis Balance</button>
+    </nav>
+
+    <div class="topbar-spacer"></div>
+
+    <button id="lang-toggle" class="lang-toggle" title="English / Español">ES</button>
+    <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark theme">☀</button>
   </header>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       KPI DASHBOARD BAR
-       ═══════════════════════════════════════════════════════════════ -->
-  <div id="kpi-bar">
-    <div class="kpi-card">
-      <span class="kpi-value" id="kpi-rounds">23</span>
-      <span class="kpi-label">Rondas</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-value kpi-highlight" id="kpi-messages">912</span>
-      <span class="kpi-label">Mensajes</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-value" id="kpi-agents">7</span>
-      <span class="kpi-label">Agentes</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-value" id="kpi-channels">6</span>
-      <span class="kpi-label">Canales</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-value kpi-warn" id="kpi-crisis">54.3%</span>
-      <span class="kpi-label">Día de crisis</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-value kpi-danger" id="kpi-sensitive">—</span>
-      <span class="kpi-label">Sensibles</span>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════════════
-       MAIN LAYOUT: 3-column grid
-       Left  = Filters
-       Center = Visualizations (2x2 grid + pressure bar)
-       Right  = Narrative panel
-       ═══════════════════════════════════════════════════════════════ -->
-  <div id="app-container">
-
-    <!-- ── LEFT: Filters ─────────────────────────────────────────── -->
-    <aside id="filters-panel">
-      <h2>Filters</h2>
-
-      <!-- Text search -->
-      <div class="filter-group">
-        <label for="search-input">🔍 Search</label>
-        <input type="text" id="search-input" placeholder="Agent, keyword…">
+  <div id="body">
+    <!-- ============ LEFT CONTROL RAIL ============ -->
+    <aside id="rail">
+      <div class="rail-topbar">
+        <button id="rail-toggle" class="panel-toggle" title="Minimizar panel">‹</button>
+      </div>
+      <div class="rail-section">
+        <div class="rail-head" data-i18n="rail_search">SEARCH</div>
+        <input id="search" type="text" data-i18n-ph="search_ph" placeholder="search messages, actors, keywords…" />
+        <div id="search-meta" class="search-meta"></div>
+        <div id="search-chips" class="chips search-chips"></div>
       </div>
 
-      <!-- Agent filter -->
-      <div class="filter-group">
-        <label>Agents</label>
-        <div id="filter-agents" class="checkbox-group"></div>
+      <div class="rail-section">
+        <div class="rail-head"><span data-i18n="rail_time">TIME WINDOW</span> <button id="time-reset" class="mini" data-i18n="reset">reset</button></div>
+        <div id="time-readout" class="time-readout" data-i18n="time_full">full timeline</div>
+        <div class="hint" data-i18n="time_hint">brush the drift braid to filter everything by time</div>
       </div>
 
-      <!-- Role filter -->
-      <div class="filter-group">
-        <label>Roles</label>
-        <div id="filter-roles" class="checkbox-group"></div>
+      <div class="rail-section">
+        <div class="rail-head" data-i18n="rail_actors">ACTORS</div>
+        <div id="filter-agents" class="chips"></div>
       </div>
 
-      <!-- Channel filter -->
-      <div class="filter-group">
-        <label>Channels</label>
-        <div id="filter-channels" class="checkbox-group"></div>
+      <div class="rail-section">
+        <div class="rail-head" data-i18n="rail_channels">CHANNELS</div>
+        <div id="filter-channels" class="chips"></div>
       </div>
 
-      <!-- Phase filter -->
-      <div class="filter-group">
-        <label>Fases</label>
-        <select id="filter-phase">
-          <option value="all">Todas las fases</option>
-          <option value="pre">Pre-crisis (R1–R8, antes del Judge)</option>
-          <option value="judge">Supervisión Judge (R9–R13)</option>
-          <option value="crisis">Día de crisis (R14–R22, 5-Jun)</option>
-          <option value="post">Post-breach (R23, 18:00)</option>
-        </select>
+      <div class="rail-section">
+        <div class="rail-head" data-i18n="rail_flags">EVIDENCE FILTERS</div>
+        <div id="filter-flags" class="chips"></div>
       </div>
 
-      <!-- Message type filter -->
-      <div class="filter-group">
-        <label>Message Type</label>
-        <div id="filter-msg-types" class="checkbox-group"></div>
+      <div class="rail-section grow">
+        <div class="rail-head"><span data-i18n="rail_hyp">HYPOTHESES</span> <span class="hint-inline" data-i18n="hyp_hint">click to focus evidence</span></div>
+        <div id="hypotheses"></div>
       </div>
-
-      <!-- Semantic filters -->
-      <div class="filter-group">
-        <label>Semantic</label>
-        <label class="cb-label"><input type="checkbox" id="filter-sensitive"> Sensitive only</label>
-        <label class="cb-label"><input type="checkbox" id="filter-merger"> Mentions merger</label>
-      </div>
-
-      <!-- Criticality slider -->
-      <div class="filter-group">
-        <label for="filter-criticality">Min Criticality: <span id="criticality-val">1</span></label>
-        <input type="range" id="filter-criticality" min="1" max="5" value="1">
-      </div>
-
-      <button id="btn-reset-filters" class="btn">Reset All Filters</button>
     </aside>
 
-    <!-- ── CENTER: Visualizations ─────────────────────────────── -->
-    <main id="viz-area">
-      <!-- Row 1: Galaxy + Timeline -->
-      <div class="viz-row">
-        <section class="viz-panel" id="panel-galaxy">
-          <h3>V1: Agent Causal Galaxy</h3>
-          <div id="viz-galaxy" class="viz-container"></div>
-        </section>
-        <section class="viz-panel" id="panel-timeline">
-          <h3>V2: Causal Timeline</h3>
-          <div id="viz-timeline" class="viz-container"></div>
-        </section>
-      </div>
+    <!-- ============ MAIN CANVAS — single condensed view ============ -->
+    <main id="canvas">
+      <section class="view active" id="view-main"></section>
+      <section class="view" id="view-balance"></section>
 
-      <!-- Row 2: Ego-chain + Judge Map -->
-      <div class="viz-row">
-        <section class="viz-panel" id="panel-egochain">
-          <h3>V3: Information Flow & Channel Migration</h3>
-          <div id="viz-egochain" class="viz-container"></div>
-        </section>
-        <section class="viz-panel" id="panel-judgemap">
-          <h3>V4: Multidimensional Oversight Matrix</h3>
-          <div id="viz-judgemap" class="viz-container"></div>
-        </section>
-      </div>
-
-      <!-- Row 3: Pressure Replay (full width) -->
-      <section class="viz-panel" id="panel-pressure">
-        <h3>V5: Systemic Pressure Replay</h3>
-        <div class="pressure-controls">
-          <button id="btn-play" class="btn btn-sm">▶ Play</button>
-          <button id="btn-pause" class="btn btn-sm">⏸ Pause</button>
-          <button id="btn-reset" class="btn btn-sm">⏮ Reset</button>
-          <input type="range" id="pressure-slider" min="1" max="23" value="1" style="flex:1;margin:0 10px;">
-          <span id="pressure-round-label">Round 1</span>
+      <!-- floating key-questions button + panel (bottom-right) -->
+      <button id="qfab" title="Investigation questions answered by this visualization">🧭 <span data-i18n="qfab">Key Questions</span></button>
+      <div id="qpanel" class="hidden">
+        <div class="qp-head">
+          <span data-i18n="qp_title">INVESTIGATION QUESTIONS</span>
+          <span class="qp-actions">
+            <button id="qp-reset" class="mini" title="Clear focus & time window" data-i18n="qp_reset">reset view</button>
+            <button id="qp-close" class="mini">✕</button>
+          </span>
         </div>
-        <div id="viz-pressure" class="viz-container viz-pressure"></div>
-      </section>
+        <div class="qp-hint" data-i18n="qp_hint">Click a question — the braid refocuses to show the answer, with linked evidence.</div>
+        <div id="qp-list"></div>
+      </div>
     </main>
 
-    <!-- ── RIGHT: Narrative Panel ────────────────────────────── -->
-    <aside id="narrative-panel">
-      <h2>Evidence & Narrative</h2>
-      <div id="hypothesis-scoreboard"></div>
-      <div id="narrative-content">
-        <p class="placeholder-text">Select an agent, event, or message to view detailed evidence here.</p>
+    <!-- ============ RIGHT EVIDENCE / DETAIL PANEL ============ -->
+    <aside id="inspector">
+      <div class="insp-head">
+        <button id="insp-toggle" class="panel-toggle" title="Minimizar panel">›</button>
+        <span id="insp-title" data-i18n="insp_title">EVIDENCE INSPECTOR</span>
+        <button id="insp-clear" class="mini" data-i18n="clear">clear</button>
       </div>
-      <div id="narrative-actions">
-        <button id="btn-copy-evidence" class="btn btn-sm">📋 Copy to Clipboard</button>
-        <button id="btn-export-evidence" class="btn btn-sm">📄 Export for Report</button>
+      <div id="insp-body">
+        <div class="insp-empty" data-i18n="insp_empty">Hover or click any element to inspect the underlying communications. Click an agent's name at the right edge of the braid for its behavioral profile (baseline vs. crisis). Shift-click to add several selections together.</div>
       </div>
     </aside>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       TOOLTIP (shared across views)
-       ═══════════════════════════════════════════════════════════════ -->
+  <!-- tooltip -->
   <div id="tooltip" class="tooltip"></div>
+</div>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       SCRIPTS — ES6 modules
-       ═══════════════════════════════════════════════════════════════ -->
-  <script type="module" src="src/main.js?v=2"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
