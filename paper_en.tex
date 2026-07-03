@@ -7,14 +7,13 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{url}
-\usepackage{booktabs}
 
 \vgtcinsertpkg
 \nocopyrightspace
 
 %% Title
-\title{AgentFlow: An Investigative Visual Analytics Platform for
-Reconstructing\\ the TenantThread Embargo Breach (VAST Challenge 2026, MC-1)}
+\title{AgentFlow: Visualizing Behavioral Drift and Weighing Evidence\\
+in the TenantThread Embargo Breach (VAST Challenge 2026, MC-1)}
 
 %% Authors: three blocks (left / center / right), e-mails at the top
 \author{Jyns Arturo Ord\'o\~nez Del Carpio\\%
@@ -27,32 +26,40 @@ Reconstructing\\ the TenantThread Embargo Breach (VAST Challenge 2026, MC-1)}
         \scriptsize Universidad de Ingenier\'ia y Tecnolog\'ia (UTEC), Lima, Peru\\%
         \scriptsize cesar.pajuelo@utec.edu.pe}
 
+%% Teaser: main view
+\teaser{
+  \centering
+  \includegraphics[width=\linewidth]{figures/braid.png}
+  \caption{The \emph{Behavioral Drift Braid}: each agent is a thread on
+  an ordinal covert-to-public posture ladder (top = monitored team
+  channel, bottom = untraceable anonymous posting). Crossing the red
+  enforcement perimeter means content became public. Composited layers:
+  expected baselines, covert-coordination arcs, Judge gates with the
+  auto-detected \textsc{judge silent} band, the causal chain E01--E12,
+  and one triangle per public post (red-rimmed = violation). Time is
+  ordinal by round: daily May~17--June~4, hourly on the crisis day.}
+  \label{fig:braid}
+}
+
 %% Abstract
 \abstract{
 Mini-Challenge~1 of the VAST Challenge 2026 asks how embargoed
-information about the \textit{Project HarborCrest} merger
-(TenantThread--CivicLoom) reached the public FleX platform
-$\sim$35 minutes before the 18:00, June~5, 2046 embargo lift,
-given the communication log of seven autonomous agents. We
-present \textbf{AgentFlow}, a forensic investigation console ---
-deliberately not a dashboard --- built with D3.js~v7 on a
-reproducible Python feature-engineering pipeline. The
-investigation is condensed into two linked views: the
-\emph{Behavioral Drift Braid}, which plots each agent as a thread
-on an ordinal covert-to-public posture ladder composited with
-expected baselines, covert-coordination arcs, compliance gates,
-the causal chain E01--E12, and a leading-indicator seismograph
-with pre-crisis $\mu{+}1\sigma$/$\mu{+}2\sigma$ thresholds; and
-the \emph{Hypothesis Balance}, a transparent evidence model whose
-twelve categories, weighted with diminishing returns
-$w_c=b_c(1-e^{-n_c/s_c})$, physically tilt a scale between
-\textsc{intentional} and \textsc{systemic failure}. Every signal
-is a documented arithmetic formula, auditable down to the
-original message from a persistent Evidence Inspector. Over the
-912 messages the balance tilts 25.3 vs.\ 14.2 toward a breach
-with a deliberate core, executed by the two agents who dominated
-the covert channel and preceded by early indicators detectable
-from May~22.%
+information about the \textit{Project HarborCrest} merger reached the
+public FleX platform $\sim$35 minutes before the 18:00, June~5, 2046
+embargo lift, given the communication log of seven autonomous agents.
+We present \textbf{AgentFlow}, a forensic investigation console ---
+deliberately not a dashboard --- built with D3.js~v7 on a reproducible
+Python feature-engineering pipeline. Two linked views condense the
+investigation: the \emph{Behavioral Drift Braid}
+(Fig.~\ref{fig:braid}), which turns behavioral drift into literal
+geometry, and the \emph{Hypothesis Balance}
+(Fig.~\ref{fig:balance}), a transparent evidence model whose twelve
+categories physically tilt a scale between \textsc{intentional} and
+\textsc{systemic failure}. Every signal is a documented, auditable
+formula. Over the 912 messages the balance tilts 25.3 vs.\ 14.2 toward
+a breach with a deliberate core, executed by the two agents who
+dominated the covert channel and preceded by early indicators
+detectable from May~22.%
 }
 
 \keywords{Visual analytics, behavioral anomaly detection,
@@ -64,249 +71,147 @@ communication forensics, evidence weighting, VAST Challenge.}
 
 \maketitle
 
-TenantThread secretly negotiates its acquisition by CivicLoom
-under an embargo until 18:00, June~5, 2046. Seven autonomous
-agents (legal, social media, quality, PR, two interns, and a
-compliance agent, \textit{The Judge}) exchange 912 messages over
-six channels of decreasing traceability; the embargoed fact
-surfaces publicly 35 minutes early. The analytic difficulty is
-threefold: evidence is scattered across messages, private
-reasoning (\texttt{internal\_state}) and 77 public posts, sampled
-irregularly (daily, then hourly on the crisis day); no single
-message constitutes the breach --- the signal is a distributed
-gradient of covert coordination, boundary testing and incremental
-disclosure via ``defensible'' governance language; and the
-central question (deliberate leak vs.\ systemic failure) is a
-judgment call. Our contributions: (1)~a fully documented pipeline
-in which every score is an auditable formula; (2)~the
-\emph{Behavioral Drift Braid}, turning behavioral drift into
-literal geometry; (3)~a composite \emph{seismograph} with
-statistically grounded early-warning thresholds; (4)~the
-\emph{Hypothesis Balance}, an explicit evidence-weighting model
-that supports --- not replaces --- the analyst's judgment.
+TenantThread secretly negotiates its acquisition by CivicLoom under an
+embargo until 18:00, June~5, 2046. Seven autonomous agents (legal,
+social media, quality, PR, two interns, and a compliance agent,
+\textit{The Judge}) exchange 912 messages over six channels of
+decreasing traceability; the embargoed fact surfaces publicly 35
+minutes early. No single message constitutes the breach: the signal is
+a distributed gradient of covert coordination, boundary testing, and
+incremental disclosure through ``defensible'' governance language.
+AgentFlow is therefore an \emph{investigation console}: one global
+filter state (actors, channels, evidence flags, time brush, search)
+drives every view, and any visual element loads its underlying
+messages --- matched terms highlighted, the agent's private
+\texttt{internal\_state} visible --- into a persistent Evidence
+Inspector, separating what was \emph{said} from what was \emph{known}.
 
-\section{Data and Feature Engineering}
+\section{System Overview}
 
-One script derives seven JSON datasets (messages, rounds,
-network, actors, posts, events, meta). \emph{No score is a black
-box.} Five transparent lexicon families flag both public content
-(\texttt{nlp}: what was \emph{said}) and private reasoning
-(\texttt{nlp\_inner}: what was \emph{known}): \textbf{merger}
-(the embargoed subject: \texttt{civicloom}, \texttt{harborcrest},
-\texttt{definitive agreement}), \textbf{embargo} (awareness:
-\texttt{6 pm}, \texttt{confidential}, \texttt{material
-nonpublic}), \textbf{execution} (the act: \texttt{executing},
-\texttt{going live}), \textbf{compliance} (rationalization:
-\texttt{10b-5}, \texttt{defensible}), and \textbf{governance} ---
-the case-specific insight: the breach leaked through individually
-defensible ``governance clarifications'' (\texttt{audit},
-\texttt{consent management}, \texttt{access control}), not blunt
-merger statements. Message sensitivity is
-\begin{equation}
-\label{eq:sens}
-S(m) = 3.0\,|M_m| + 2.0\,|E_m| + 1.5\,|G_m| + 1.0\,|X_m|
-\end{equation}
-over the merger/embargo/governance/execution term counts, weights
-decreasing with legal gravity of each family. An \emph{embargo
-violation} is the strict conjunction $V(m)=$ (public $\wedge$
-merger language $\wedge$ $t_m<t_{\text{embargo}}$); 16 messages
-qualify. Each public post $p$ receives a leak likelihood
-\begin{align}
-\label{eq:leak}
-LL(p) ={}& 0.45\,[|M_p|{>}0] + 0.20\,[t_p{<}t_{\text{emb}}]
-        + 0.15\,[|X_p|{>}0] \nonumber\\
-       &+ 0.10\,[\text{anonymous}] + 0.10\,\min(C(p),10)/10,
-\end{align}
-where the coordination score $C(p)$ counts covert
-\texttt{side\_huddle} messages in the prior 90 minutes --- the
-signature of a \emph{primed} act. Betweenness (Brandes) is
-computed \textbf{only over private/covert edges}: the team is a
-broadcast clique, so the global metric is trivially zero;
-restricted, it reveals who bridges reserved conversations (legal:
-0.36, maximum). \emph{Brokerage} $B(a)=$ (covert+private messages
-sent) $\times$ (public posts authored), normalized, finds the
-internal$\rightarrow$public conduit (social media 1.00, legal
-0.78). Behavioral deviation is the normalized $L_1$ distance
-$D(a)=\frac{1}{2}\sum_c|\pi^{\text{crisis}}_a(c)-\pi^{\text{base}}_a(c)|$
-between crisis-day and pre-crisis channel mixes, plus
-\texttt{new\_channels} never used in baseline.
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.78\textwidth]{figures/balance.png}
+  \caption{The \emph{Hypothesis Balance}: twelve auditable evidence
+  categories drop as weights into the \textsc{intentional} (red) or
+  \textsc{systemic failure} (blue) pan; the ledger (right) shows each
+  category's effective weight and the pole it drives, with the full
+  method disclosed. Over the 912 messages the scale tilts 25.3 vs.\
+  14.2 toward \textsc{intentional}.}
+  \label{fig:balance}
+\end{figure*}
 
-\section{Visual Design}
+\textbf{Data processing.} A single Python script derives all features.
+Five transparent lexicon families (merger, embargo, execution,
+compliance, governance) flag both public content and private
+reasoning; per-message sensitivity weights them by legal gravity
+(merger $\times 3$, embargo $\times 2$, governance $\times 1.5$,
+execution $\times 1$). An \emph{embargo violation} is the strict
+conjunction of public channel, merger language, and timing before
+18:00 --- 16 messages qualify. Public posts also receive a
+\emph{leak likelihood} dominated by merger language, pre-embargo
+timing, and a \emph{coordination score} counting covert
+\texttt{side\_huddle} messages in the prior 90 minutes; as a built-in
+sanity check, its top-ranked posts are exactly the real breach cluster
+(17:25--17:54). On the agent graph, betweenness is computed only over
+private/covert edges (the team broadcasts to everyone, so the global
+metric degenerates), and \emph{brokerage} --- covert messages sent
+$\times$ public posts authored --- identifies the
+internal$\rightarrow$public conduit. Behavioral deviation compares
+each agent's crisis-day channel mix against its pre-crisis baseline
+($L_1$ distance), plus public channels never used before.
 
-\textbf{Rationale.} The layout is a forensic case file: filter
-rail, central canvas, persistent \emph{Evidence Inspector}. Any
-element loads its messages with matched terms highlighted and
-internal reasoning visible --- visual abstraction to textual
-proof in one click. A single \texttt{filtered()} state (actors,
-channels, evidence flags, time brush, search) drives every view;
-filters have all/none toggles and one-click Reset; searching
-draws a per-round sparkline of term mentions. Time is ordinal by
-round so the nine decisive hours are not crushed by two calm
-weeks. Bilingual UI (EN/ES), light/dark themes.
+\textbf{Behavioral Drift Braid (Fig.~\ref{fig:braid}).} Each agent's
+per-round position is its channel average with public messages
+weighted $\times 3$, so exposure visibly pulls the thread. Below the
+braid, a \emph{seismograph} scores each round by combining lexical
+sensitivity, covert messages, boundary tests, and violations with
+weights that grow with legal gravity, against early-warning
+($\mu{+}1\sigma$) and alert ($\mu{+}2\sigma$) thresholds computed from
+the pre-crisis rounds --- the one place where the data, not the
+analyst, sets the bar. A floating \emph{Key Questions} panel
+reconfigures the braid per challenge task with linked evidence.
 
-\textbf{Behavioral Drift Braid.} Each agent is a thread on an
-ordinal posture ladder $\Pi=\{$monitored huddle$\,{=}\,0$, 1:1$\,{=}\,1$,
-side-huddle$\,{=}\,2$, official$\,{=}\,3$, personal$\,{=}\,4$,
-anonymous$\,{=}\,5\}$; its per-round position is the weighted mean
-\begin{equation}
-\label{eq:posture}
-y_a(r) = \frac{\sum_{m} w_m\,\Pi(c_m)}{\sum_{m} w_m},
-\qquad w_m=3 \text{ if public, else } 1,
-\end{equation}
-so exposure visibly pulls the thread; crossing the red
-\emph{enforcement perimeter} means content went public.
-Composited layers: dotted pre-crisis baselines ($\mu\pm\sigma$ of
-$y_a$: expected behavior), purple covert-coordination arcs, Judge
-gates (green~=~held; red~=~a violation followed within
-$[r,r{+}2]$) with the auto-detected \textsc{judge silent} band,
-the causal chain E01--E12 with decision arrows (including the red
-``ceiling warning ignored'' arrow E09$\rightarrow$E10), and one
-triangle per public post, red-rimmed if violating. A \emph{Key
-Questions} panel reconfigures the braid per challenge task with
-linked evidence.
-
-\textbf{Seismograph.} Each round is scored
-\begin{equation}
-\label{eq:anomaly}
-A(r) = 0.4\,\Sigma S_r + 1.0\,n^{\text{covert}}_r
-     + 3.0\,n^{\text{boundary}}_r + 6.0\,n^{\text{viol}}_r
-\end{equation}
-against dashed pre-crisis $\mu{+}1\sigma$ (early warning) and
-$\mu{+}2\sigma$ (alert) thresholds, next to the \$TTHR share
-price and per-round covert/boundary/violation tick rows.
-
-\section{The Hypothesis Balance}
-
-Each evidence category is a \emph{physical weight} dropping into
-the red (\textsc{intentional}) or blue (\textsc{systemic
-failure}) pan of an SVG scale animated by a force simulation. The
-effective weight of category $c$ with $n_c$ matching messages
-saturates:
-\begin{equation}
-\label{eq:sat}
-w_c = b_c\big(1 - e^{-n_c/s_c}\big),
-\end{equation}
-so the first hit counts most and \emph{volume cannot drown
-signal}: one attributable official-channel violation ($b{=}8$)
-outweighs dozens of routine governance mentions ($b{=}2$).
-Table~\ref{tab:categories} lists all twelve categories with their
-exact assignment rules --- also shown in-UI as transparency
-tooltips (why it matters, routing rule, $b_c$, $n_c$, pole);
-clicking a row loads its messages. The structural concentration
-term encodes that concentrated breaches indicate design:
-$w_{\text{conc}} = 6.5\cdot\sum_{a\in\text{top-2}}v_a/\sum_a v_a$
-over per-agent violation counts $v_a$. Categories map with signed
-multipliers to the three hypotheses (A~deliberate,
-B~coordination failure, C~emergent with deliberate core);
-$\text{net}_h=\max(0,\Sigma\text{FOR}-\Sigma\text{AGAINST})$,
-$\text{conf}_h=\text{net}_h/\Sigma\text{net}$, closing as
-\textsc{confirmed} at $\geq$45\% with a $\geq$12-point lead or
-\textsc{rejected} at $\leq$15\%. The beam tilt
-$\theta=0.26\tanh((W_{\text{sys}}-W_{\text{int}})/7)$ keeps
-extreme imbalances readable; a verdict banner restates the tilt
-in plain language under every filter. The balance shows the
-\emph{balance of evidence}, never a machine conclusion.
-
-\begin{table}[htb]
-\caption{Evidence categories: base weight, saturation, rule.}
-\label{tab:categories}
-\centering
-\scriptsize
-\begin{tabular}{p{1.9cm}ccp{3.2cm}}
-\toprule
-\textbf{Category} & $b_c$ & $s_c$ & \textbf{Assignment rule} \\
-\midrule
-\multicolumn{4}{l}{\emph{INTENTIONAL pole}} \\
-Attributable leak & 8 & 2 & public $\wedge$ violation $\wedge$ official channel \\
-Anonymous pre-seeding & 5 & 2 & anonymous $\wedge$ merger $\wedge$ before embargo \\
-Covert coordination & 4 & 20 & merger/embargo in \texttt{side\_huddle} \\
-Breach concentration & $6.5\times$ & --- & top-2 agents' share of violations \\
-Breach timing cluster & 6 & 1 & violation $\wedge$ crisis-day round \\
-Channel escalation & 5 & 1 & same agent breaches via covert \emph{and} personal/anonymous \\
-\midrule
-\multicolumn{4}{l}{\emph{SYSTEMIC FAILURE pole}} \\
-Boundary testing & 3 & 8 & public $\wedge$ merger/embargo $\wedge$ $\neg$violation \\
-Uncontrolled leak & 4 & 6 & violation $\wedge$ non-official channel \\
-Defensive clarification & 2 & 3 & public $\wedge$ compliance $\wedge$ $\neg$violation \\
-Late-installed control & 3 & fixed & Judge deployed $\sim$1 week before breach (E04) \\
-Unenforced warning & 1.5 & fixed & E09 issued without coercive power \\
-Channel reinforcement & 3 & --- & merger live on all 3 public channels at once \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textbf{Hypothesis Balance (Fig.~\ref{fig:balance}).} Each evidence
+category is a physical weight dropping into the red
+(\textsc{intentional}) or blue (\textsc{systemic failure}) pan. The
+effective weight saturates as $w_c=b_c(1-e^{-n_c/s_c})$: the first hit
+of a category counts most and further hits saturate, so \emph{volume
+cannot drown signal} --- one attributable official-channel violation
+(base~8) outweighs dozens of routine governance mentions (base~2).
+Base weights encode relative probative force; saturation counts follow
+expected frequency (rare, conclusive categories saturate at 1--2 hits;
+individually weak covert messages need 20). Hovering any category
+discloses why it matters, its exact assignment rule, weight, count,
+and pole; clicking loads its messages. A verdict banner restates the
+tilt in plain language under every filter.
 
 \section{Answers to the MC-1 Tasks}
 
 \textbf{Q1 --- Events, relationships, decision points.} The chain
-reads on the braid: CEO seeds ``strategic developments''
-privately (May~17, E01) $\to$ covert \texttt{side\_huddle}
-activated, merger briefing held there (May~22, E02--E03) $\to$
-Judge assigned only after a public faux pas (May~30, E04) $\to$
-SaltWind expos\'e pressure (May~31/Jun~4, E05--E06) $\to$ June~5:
-anonymous post references the deal (09:49, E07), boundary tests
-escalate (E08), the 15:08 ceiling warning (E09) is ignored $\to$
-Legal posts on its personal account at 17:25 (E10), Social-Media
-amplifies (E11), breach confirmed before 18:00 (E12). Key
-decisions: activating the covert channel, briefing there,
-ignoring E09, posting.
+reads on the braid: CEO seeds ``strategic developments'' privately
+(May~17, E01) $\to$ covert \texttt{side\_huddle} activated, merger
+briefing held there (May~22, E02--E03) $\to$ Judge assigned only after
+a public faux pas (May~30, E04) $\to$ SaltWind expos\'e pressure
+(E05--E06) $\to$ June~5: anonymous post references the deal (09:49,
+E07), boundary tests escalate (E08), the 15:08 ceiling warning (E09)
+is ignored $\to$ Legal posts on its personal account at 17:25 (E10),
+Social-Media amplifies (E11), breach confirmed before 18:00 (E12). Key
+decisions: activating the covert channel, briefing there, ignoring
+E09, posting.
 
-\textbf{Q2 --- What let the post past enforcement.} (1)~Late
-control: gates appear only from May~30, after coordination had
-gone covert; (2)~the silent gap: zero compliance output during
-the crisis morning when the first violations occurred;
-(3)~advisory-only power: E09 is a ruling, not a block;
-(4)~scope: enforcement watched the official account while the
-breach travelled personal/anonymous channels --- exactly where
-the Legal and Social-Media threads end the day.
+\textbf{Q2 --- What let the post past enforcement.} (1)~Late control:
+gates appear only from May~30, after coordination had gone covert;
+(2)~the silent gap: zero compliance output during the crisis morning,
+when the first violations occurred; (3)~advisory-only power: E09 is a
+ruling, not a block; (4)~scope: enforcement watched the official
+account while the breach travelled personal/anonymous channels ---
+exactly where the Legal and Social-Media threads end the day.
 
-\textbf{Q3 --- Typical vs.\ breach behavior.} Two pre-crisis
-weeks of flat threads in monitored zones define normality; on
-June~5 the Legal thread dives across the perimeter: $D=0.31$, 176
-crisis-day messages vs.\ a 90-message baseline, 12 anonymous
-posts, and \emph{two never-before-used public channels}.
-Social-Media mirrors the dive; all other agents stay near
-baseline, isolating the anomaly to the same pair that dominates
-brokerage.
+\textbf{Q3 --- Typical vs.\ breach behavior.} Two pre-crisis weeks of
+flat threads in monitored zones define normality; on June~5 the Legal
+thread dives across the perimeter: deviation 0.31, 176 crisis-day
+messages vs.\ a 90-message baseline, 12 anonymous posts, and \emph{two
+never-before-used public channels}. Social-Media mirrors the dive; all
+other agents stay near baseline, isolating the anomaly to the same
+pair that dominates brokerage.
 
 \textbf{Q4 --- Leading indicators.} Yes: the seismograph exceeds
 $\mu{+}1\sigma$ on May~22 (covert activation) and May~29 (public
-near-incident) and crosses $\mu{+}2\sigma$ hours before the
-breach; anonymous pre-seeding starts at 09:49, eight hours before
+near-incident) and crosses $\mu{+}2\sigma$ hours before the breach;
+anonymous pre-seeding starts at 09:49, eight hours before
 confirmation.
 
-\textbf{Q5 --- Prior deviations.} May~22: senior agents move
-merger talk off the monitored channel (first posture drop, first
-purple arcs). May~29: @Elena's public post skirts merger language
---- the faux pas that triggered the Judge's assignment.
-May~31--June~4: governance-framed clarifications rise --- each
-locally defensible, jointly disclosing.
+\textbf{Q5 --- Prior deviations.} May~22: senior agents move merger
+talk off the monitored channel (first posture drop, first purple
+arcs). May~29: @Elena's public post skirts merger language --- the
+faux pas that triggered the Judge's assignment. May~31--June~4:
+governance-framed clarifications rise --- each locally defensible,
+jointly disclosing.
 
-\textbf{Q6 --- Similar episodes.} The pattern (covert alignment
-$\to$ public boundary test) rehearses twice: May~22--23 (covert
-cluster + merger-adjacent post) and May~29--30 (near-incident +
-defensive clarifications); brushing to May makes both visually
-isomorphic to June~5.
+\textbf{Q6 --- Similar episodes.} The pattern (covert alignment $\to$
+public boundary test) rehearses twice: May~22--23 (covert cluster +
+merger-adjacent post) and May~29--30 (near-incident + defensive
+clarifications); brushing to May makes both visually isomorphic to
+June~5.
 
 \textbf{Q7 --- Why no earlier action.} Green gates were read as
 success (false confidence); each boundary test was individually
-defensible, so rule-based alerts never fired; the only escalation
-was advisory. The system punished blunt violations but was blind
-to the \emph{gradient} --- what the composite score makes
-visible.
+defensible, so rule-based alerts never fired; the only escalation was
+advisory. The system punished blunt violations but was blind to the
+\emph{gradient} --- what the composite score makes visible.
 
-\textbf{Verdict.} The balance tilts \textsc{intentional} 25.3
-vs.\ 14.2: \emph{emergent behavior with a deliberate core} ---
-unmonitored channels and late controls enabled the leak; a
-deliberate, attributable act completed it.
+\textbf{Verdict.} The balance tilts \textsc{intentional} 25.3 vs.\
+14.2: \emph{emergent behavior with a deliberate core} --- unmonitored
+channels and late controls enabled the leak; a deliberate,
+attributable act completed it.
 
 \section{Conclusion}
 
-Three design decisions proved decisive: the ordinal posture
-ladder with $\times 3$ public weighting, betweenness restricted
-to private edges, and exponential evidence saturation --- rare
-conclusive evidence beats routine volume. Base weights remain
+Three design decisions proved decisive: the ordinal posture ladder
+with $\times 3$ public weighting, betweenness restricted to private
+edges, and exponential evidence saturation. Base weights remain
 editorial (visible and defended, not learned) and the verdict is
-filter-sensitive by design. AgentFlow does not decide for the
-analyst; it makes the analyst's judgment \emph{defensible}.
+filter-sensitive by design: AgentFlow does not decide for the analyst
+--- it makes the analyst's judgment \emph{defensible}.
 
 \end{document}

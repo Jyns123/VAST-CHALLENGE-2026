@@ -7,14 +7,13 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{url}
-\usepackage{booktabs}
 
 \vgtcinsertpkg
 \nocopyrightspace
 
 %% Título
-\title{AgentFlow: Plataforma de Anal\'itica Visual Investigativa para
-Reconstruir\\ la Filtraci\'on del Embargo de TenantThread (VAST Challenge 2026, MC-1)}
+\title{AgentFlow: Visualizaci\'on de Deriva Conductual y Ponderaci\'on de
+Evidencia\\ en la Filtraci\'on del Embargo de TenantThread (VAST Challenge 2026, MC-1)}
 
 %% Autores: tres bloques (izquierda / centro / derecha), correos arriba
 \author{Jyns Arturo Ord\'o\~nez Del Carpio\\%
@@ -27,40 +26,48 @@ Reconstruir\\ la Filtraci\'on del Embargo de TenantThread (VAST Challenge 2026, 
         \scriptsize Universidad de Ingenier\'ia y Tecnolog\'ia (UTEC), Lima, Per\'u\\%
         \scriptsize cesar.pajuelo@utec.edu.pe}
 
+%% Teaser: vista principal
+\teaser{
+  \centering
+  \includegraphics[width=\linewidth]{figures/braid.png}
+  \caption{La \emph{Trenza de Deriva Conductual}: cada agente es un hilo
+  sobre una escalera ordinal de postura encubierta-a-p\'ublica (arriba =
+  canal de equipo monitoreado, abajo = publicaci\'on an\'onima
+  intrazable). Cruzar el per\'imetro rojo significa que el contenido se
+  hizo p\'ublico. Capas compuestas: l\'ineas base esperadas, arcos de
+  coordinaci\'on encubierta, compuertas del Judge con la franja
+  autodetectada \textsc{judge silent}, la cadena causal E01--E12 y un
+  tri\'angulo por post p\'ublico (borde rojo = violaci\'on). Tiempo
+  ordinal por ronda: diario del 17 de mayo al 4 de junio, horario el
+  d\'ia de crisis.}
+  \label{fig:braid}
+}
+
 %% Resumen
 \abstract{
 El Mini-Challenge~1 del VAST Challenge 2026 pregunta c\'omo la
-informaci\'on embargada de la fusi\'on \textit{Project
-HarborCrest} (TenantThread--CivicLoom) alcanz\'o la plataforma
-p\'ublica FleX $\sim$35 minutos antes del levantamiento del
-embargo (18:00, 5 de junio de 2046), dado el registro de
-comunicaciones de siete agentes aut\'onomos. Presentamos
+informaci\'on embargada de la fusi\'on \textit{Project HarborCrest}
+alcanz\'o la plataforma p\'ublica FleX $\sim$35 minutos antes del
+levantamiento del embargo (18:00, 5 de junio de 2046), dado el registro
+de comunicaciones de siete agentes aut\'onomos. Presentamos
 \textbf{AgentFlow}, una consola de investigaci\'on forense ---
-deliberadamente no un dashboard --- construida con D3.js~v7
-sobre un pipeline reproducible de ingenier\'ia de atributos en
-Python. La investigaci\'on se condensa en dos vistas enlazadas:
-la \emph{Trenza de Deriva Conductual}, que proyecta cada agente
-como un hilo sobre una escalera ordinal de postura
-encubierta-a-p\'ublica, compuesta con l\'ineas base esperadas,
-arcos de coordinaci\'on encubierta, compuertas de cumplimiento,
-la cadena causal E01--E12 y un sism\'ografo de indicadores
-tempranos con umbrales pre-crisis
-$\mu{+}1\sigma$/$\mu{+}2\sigma$; y la \emph{Balanza de
-Hip\'otesis}, un modelo de evidencia transparente cuyas doce
-categor\'ias, ponderadas con retornos decrecientes
-$w_c=b_c(1-e^{-n_c/s_c})$, inclinan f\'isicamente una balanza
-entre \textsc{intencional} y \textsc{fallo sist\'emico}. Toda
-se\~nal es una f\'ormula aritm\'etica documentada, auditable
-hasta el mensaje original desde un Inspector de Evidencia
-persistente. Sobre los 912 mensajes, la balanza se inclina 25.3
-vs.\ 14.2 hacia una brecha con n\'ucleo deliberado, ejecutada por
-los dos agentes que dominaban el canal encubierto y precedida por
-indicadores tempranos detectables desde el 22 de mayo.%
+deliberadamente no un dashboard --- construida con D3.js~v7 sobre un
+pipeline reproducible de ingenier\'ia de atributos en Python. Dos
+vistas enlazadas condensan la investigaci\'on: la \emph{Trenza de
+Deriva Conductual} (Fig.~\ref{fig:braid}), que vuelve la deriva
+conductual geometr\'ia literal, y la \emph{Balanza de Hip\'otesis}
+(Fig.~\ref{fig:balance}), un modelo de evidencia transparente cuyas
+doce categor\'ias inclinan f\'isicamente una balanza entre
+\textsc{intencional} y \textsc{fallo sist\'emico}. Toda se\~nal es una
+f\'ormula documentada y auditable. Sobre los 912 mensajes la balanza se
+inclina 25.3 vs.\ 14.2 hacia una brecha con n\'ucleo deliberado,
+ejecutada por los dos agentes que dominaban el canal encubierto y
+precedida por indicadores tempranos detectables desde el 22 de mayo.%
 }
 
-\keywords{Anal\'itica visual, detecci\'on de anomal\'ias
-conductuales, an\'alisis forense de comunicaciones, ponderaci\'on
-de evidencia, VAST Challenge.}
+\keywords{Anal\'itica visual, detecci\'on de anomal\'ias conductuales,
+an\'alisis forense de comunicaciones, ponderaci\'on de evidencia,
+VAST Challenge.}
 
 \begin{document}
 
@@ -68,256 +75,154 @@ de evidencia, VAST Challenge.}
 
 \maketitle
 
-TenantThread negocia en secreto su adquisici\'on por CivicLoom
-bajo un embargo hasta las 18:00 del 5 de junio de 2046. Siete
-agentes aut\'onomos (legal, redes sociales, calidad, RR.PP., dos
-practicantes y un agente de cumplimiento, \textit{The Judge})
-intercambian 912 mensajes por seis canales de trazabilidad
-decreciente; el hecho embargado aparece 35 minutos antes.
-Ning\'un mensaje aislado constituye la brecha: la se\~nal es un
-gradiente de coordinaci\'on encubierta, pruebas de l\'imite y
-divulgaci\'on incremental v\'ia lenguaje ``defendible'' de
-gobernanza, y la pregunta central (¿deliberada o sist\'emica?) es
-un juicio. Contribuciones: (1)~un pipeline donde cada puntaje es
-una f\'ormula auditable; (2)~la \emph{Trenza de Deriva
-Conductual}, que vuelve la deriva geometr\'ia literal; (3)~un
-\emph{sism\'ografo} con umbrales de alerta temprana
-estad\'isticamente fundados; (4)~la \emph{Balanza de
-Hip\'otesis}, ponderaci\'on expl\'icita de evidencia que apoya
---- no reemplaza --- el juicio del analista.
+TenantThread negocia en secreto su adquisici\'on por CivicLoom bajo un
+embargo hasta las 18:00 del 5 de junio de 2046. Siete agentes
+aut\'onomos (legal, redes sociales, calidad, RR.PP., dos practicantes
+y un agente de cumplimiento, \textit{The Judge}) intercambian 912
+mensajes por seis canales de trazabilidad decreciente; el hecho
+embargado aparece 35 minutos antes. Ning\'un mensaje aislado
+constituye la brecha: la se\~nal es un gradiente distribuido de
+coordinaci\'on encubierta, pruebas de l\'imite y divulgaci\'on
+incremental v\'ia lenguaje ``defendible'' de gobernanza. AgentFlow es
+por ello una \emph{consola de investigaci\'on}: un \'unico estado
+global de filtrado (actores, canales, banderas, ventana temporal,
+b\'usqueda) gobierna todas las vistas, y cualquier elemento visual
+carga sus mensajes en un Inspector de Evidencia persistente,
+separando lo \emph{dicho} de lo \emph{sabido}.
 
-\section{Datos e Ingenier\'ia de Atributos}
+\section{Descripci\'on del Sistema}
 
-Un script deriva siete datasets JSON (messages, rounds, network,
-actors, posts, events, meta). \emph{Ning\'un puntaje es caja
-negra.} Cinco familias l\'exicas transparentes marcan el
-contenido p\'ublico (\texttt{nlp}: lo \emph{dicho}) y el
-razonamiento privado (\texttt{nlp\_inner}: lo \emph{sabido}):
-\textbf{merger} (el sujeto embargado: \texttt{civicloom},
-\texttt{harborcrest}), \textbf{embargo} (conciencia:
-\texttt{6 pm}, \texttt{confidential}), \textbf{execution} (el
-acto: \texttt{executing}, \texttt{going live}),
-\textbf{compliance} (racionalizaci\'on: \texttt{10b-5},
-\texttt{defensible}) y \textbf{governance} --- el hallazgo del
-caso: la brecha se filtr\'o mediante ``aclaraciones de
-gobernanza'' individualmente defendibles (\texttt{audit},
-\texttt{consent management}), no con afirmaciones burdas. La
-sensibilidad por mensaje es
-\begin{equation}
-\label{eq:sens}
-S(m) = 3.0\,|M_m| + 2.0\,|E_m| + 1.5\,|G_m| + 1.0\,|X_m|
-\end{equation}
-sobre los conteos merger/embargo/governance/execution. La
-\emph{violaci\'on de embargo} es la conjunci\'on estricta $V(m)=$
-(p\'ublico $\wedge$ lenguaje merger $\wedge$
-$t_m<t_{\text{embargo}}$); 16 mensajes califican. Cada post
-p\'ublico $p$ recibe una verosimilitud de filtraci\'on
-\begin{align}
-\label{eq:leak}
-LL(p) ={}& 0.45\,[|M_p|{>}0] + 0.20\,[t_p{<}t_{\text{emb}}]
-        + 0.15\,[|X_p|{>}0] \nonumber\\
-       &+ 0.10\,[\text{an\'onimo}] + 0.10\,\min(C(p),10)/10,
-\end{align}
-donde el score de coordinaci\'on $C(p)$ cuenta los mensajes
-encubiertos en \texttt{side\_huddle} de los 90 minutos previos
---- la firma de un acto \emph{preparado}. La betweenness
-(Brandes) se computa \textbf{solo sobre aristas
-privadas/encubiertas}: el equipo es una clique de difusi\'on y la
-m\'etrica global es trivialmente cero; restringida, revela
-qui\'en puentea las conversaciones reservadas (legal: 0.36,
-m\'aximo). El \emph{brokerage} $B(a)=$ (mensajes
-encubiertos+privados) $\times$ (posts p\'ublicos), normalizado,
-halla el conducto interno$\rightarrow$p\'ublico (redes sociales
-1.00, legal 0.78). La desviaci\'on conductual es la distancia
-$L_1$ normalizada
-$D(a)=\frac{1}{2}\sum_c|\pi^{\text{crisis}}_a(c)-\pi^{\text{base}}_a(c)|$
-entre las mezclas de canales de crisis y pre-crisis, m\'as los
-\texttt{new\_channels} nunca usados en la l\'inea base.
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.78\textwidth]{figures/balance.png}
+  \caption{La \emph{Balanza de Hip\'otesis}: doce categor\'ias de
+  evidencia auditables caen como pesos en el platillo
+  \textsc{intencional} (rojo) o \textsc{fallo sist\'emico} (azul); el
+  libro mayor (derecha) muestra el peso efectivo de cada categor\'ia y
+  el polo que impulsa, con el m\'etodo completo expuesto. Sobre los 912
+  mensajes la balanza se inclina 25.3 vs.\ 14.2 hacia
+  \textsc{intencional}.}
+  \label{fig:balance}
+\end{figure*}
 
-\section{Dise\~no Visual}
+\textbf{Procesamiento de datos.} Un \'unico script en Python deriva
+todos los atributos. Cinco familias l\'exicas transparentes (merger,
+embargo, execution, compliance, governance) marcan el contenido
+p\'ublico y el razonamiento privado; la sensibilidad por mensaje las
+pondera por gravedad legal (merger $\times 3$, embargo $\times 2$,
+governance $\times 1.5$, execution $\times 1$). La \emph{violaci\'on
+de embargo} es la conjunci\'on estricta de canal p\'ublico, lenguaje
+merger y publicaci\'on antes de las 18:00 --- 16 mensajes califican.
+Cada post p\'ublico recibe adem\'as una \emph{verosimilitud de
+filtraci\'on} dominada por el lenguaje merger, el timing pre-embargo y
+un \emph{score de coordinaci\'on} que cuenta los mensajes encubiertos
+en \texttt{side\_huddle} de los 90 minutos previos; como
+verificaci\'on de sanidad, sus posts top son exactamente el cl\'uster
+real de la brecha (17:25--17:54). En el grafo de agentes, la
+betweenness se computa solo sobre aristas privadas/encubiertas (el
+equipo difunde a todos, la m\'etrica global degenera), y el
+\emph{brokerage} --- mensajes encubiertos enviados $\times$ posts
+p\'ublicos --- identifica el conducto interno$\rightarrow$p\'ublico.
+La desviaci\'on conductual compara la mezcla de canales del d\'ia de
+crisis contra la l\'inea base pre-crisis (distancia $L_1$), m\'as los
+canales p\'ublicos nunca antes usados.
 
-\textbf{Racional.} La pantalla es un expediente forense: barra de
-filtros, lienzo central, \emph{Inspector de Evidencia}
-persistente. Cualquier elemento carga sus mensajes con los
-t\'erminos resaltados y el razonamiento interno visible --- de la
-abstracci\'on visual a la prueba textual en un clic. Un \'unico
-estado \texttt{filtered()} (actores, canales, banderas, ventana
-temporal, b\'usqueda) gobierna todas las vistas; los filtros
-tienen conmutadores todo/nada y Reset de un clic; la b\'usqueda
-dibuja un sparkline por ronda de menciones. El tiempo es ordinal
-por ronda para no aplastar las nueve horas decisivas. Interfaz
-biling\"ue (EN/ES), tema claro/oscuro.
-
-\textbf{Trenza de Deriva Conductual.} Cada agente es un hilo
-sobre una escalera ordinal de postura $\Pi=\{$huddle
-monitoreado$\,{=}\,0$, 1:1$\,{=}\,1$, side-huddle$\,{=}\,2$,
-oficial$\,{=}\,3$, personal$\,{=}\,4$, an\'onimo$\,{=}\,5\}$; su
-posici\'on por ronda es la media ponderada
-\begin{equation}
-\label{eq:posture}
-y_a(r) = \frac{\sum_{m} w_m\,\Pi(c_m)}{\sum_{m} w_m},
-\qquad w_m=3 \text{ si p\'ublico, si no } 1,
-\end{equation}
-de modo que la exposici\'on jala visiblemente el hilo; cruzar el
-\emph{per\'imetro rojo de aplicaci\'on} significa contenido
-p\'ublico. Capas compuestas: l\'ineas base punteadas pre-crisis
-($\mu\pm\sigma$ de $y_a$), arcos p\'urpura de coordinaci\'on
-encubierta, compuertas del Judge (verde~=~contuvo; rojo~=~sigui\'o
-violaci\'on en $[r,r{+}2]$) con la franja autodetectada
-\textsc{judge silent}, la cadena causal E01--E12 con flechas de
-decisi\'on (incluida la roja ``advertencia ignorada''
-E09$\rightarrow$E10) y un tri\'angulo por post p\'ublico, con
-borde rojo si viola. Un panel de \emph{Key Questions} reconfigura
+\textbf{Trenza de Deriva Conductual (Fig.~\ref{fig:braid}).} La
+posici\'on de cada agente por ronda es su promedio de canales con los
+mensajes p\'ublicos ponderados $\times 3$, de modo que la exposici\'on
+jala visiblemente el hilo. Bajo la trenza, un \emph{sism\'ografo}
+punt\'ua cada ronda combinando sensibilidad l\'exica, mensajes
+encubiertos, pruebas de l\'imite y violaciones con pesos crecientes
+seg\'un gravedad legal, contra umbrales de alerta temprana
+($\mu{+}1\sigma$) y alarma ($\mu{+}2\sigma$) calculados sobre las
+rondas pre-crisis --- el \'unico lugar donde el dato, no el analista,
+fija el umbral. Un panel flotante de \emph{Key Questions} reconfigura
 la trenza por tarea del reto con evidencia enlazada.
 
-\textbf{Sism\'ografo.} Cada ronda se punt\'ua
-\begin{equation}
-\label{eq:anomaly}
-A(r) = 0.4\,\Sigma S_r + 1.0\,n^{\text{covert}}_r
-     + 3.0\,n^{\text{boundary}}_r + 6.0\,n^{\text{viol}}_r
-\end{equation}
-contra umbrales pre-crisis $\mu{+}1\sigma$ (alerta temprana) y
-$\mu{+}2\sigma$ (alarma), junto al precio \$TTHR y filas de marcas
-covert/boundary/violaci\'on por ronda.
-
-\section{La Balanza de Hip\'otesis}
-
-Cada categor\'ia de evidencia es un \emph{peso f\'isico} que cae
-en el platillo rojo (\textsc{intencional}) o azul (\textsc{fallo
-sist\'emico}) de una balanza SVG animada por fuerzas. El peso
-efectivo de la categor\'ia $c$ con $n_c$ mensajes satura:
-\begin{equation}
-\label{eq:sat}
-w_c = b_c\big(1 - e^{-n_c/s_c}\big),
-\end{equation}
-as\'i el primer acierto cuenta m\'aximo y \emph{el volumen no
-ahoga la se\~nal}: una violaci\'on atribuible en canal oficial
-($b{=}8$) pesa m\'as que docenas de menciones de gobernanza
-($b{=}2$). La Tabla~\ref{tab:categorias} lista las doce
-categor\'ias con sus reglas exactas --- mostradas en la interfaz
-como tooltips de transparencia (por qu\'e importa, regla, $b_c$,
-$n_c$, polo); el clic carga sus mensajes. El t\'ermino
-estructural de concentraci\'on codifica que las brechas
-concentradas indican dise\~no:
-$w_{\text{conc}}=6.5\cdot\sum_{a\in\text{top-2}}v_a/\sum_a v_a$
-sobre las violaciones $v_a$ por agente. Las categor\'ias mapean
-con multiplicadores con signo a las tres hip\'otesis
-(A~deliberada, B~fallo de coordinaci\'on, C~emergente con
-n\'ucleo deliberado);
-$\text{net}_h=\max(0,\Sigma\text{FOR}-\Sigma\text{AGAINST})$,
-$\text{conf}_h=\text{net}_h/\Sigma\text{net}$, cerrando como
-\textsc{confirmada} con $\geq$45\% y ventaja $\geq$12 puntos o
-\textsc{rechazada} con $\leq$15\%. La inclinaci\'on
-$\theta=0.26\tanh((W_{\text{sys}}-W_{\text{int}})/7)$ mantiene
-legibles los desbalances extremos; un banner de veredicto la
-reformula en lenguaje llano bajo cada filtro. La balanza muestra
-el \emph{balance de la evidencia}, nunca una conclusi\'on de la
-m\'aquina.
-
-\begin{table}[htb]
-\caption{Categor\'ias de evidencia: peso base, saturaci\'on, regla.}
-\label{tab:categorias}
-\centering
-\scriptsize
-\begin{tabular}{p{1.9cm}ccp{3.2cm}}
-\toprule
-\textbf{Categor\'ia} & $b_c$ & $s_c$ & \textbf{Regla de asignaci\'on} \\
-\midrule
-\multicolumn{4}{l}{\emph{Polo INTENCIONAL}} \\
-Filtraci\'on atribuible & 8 & 2 & p\'ublico $\wedge$ violaci\'on $\wedge$ canal oficial \\
-Pre-siembra an\'onima & 5 & 2 & an\'onimo $\wedge$ merger $\wedge$ antes del embargo \\
-Coordinaci\'on encubierta & 4 & 20 & merger/embargo en \texttt{side\_huddle} \\
-Concentraci\'on de brecha & $6.5\times$ & --- & proporci\'on del top-2 de agentes \\
-Cl\'uster temporal & 6 & 1 & violaci\'on $\wedge$ ronda de crisis \\
-Escalada de canal & 5 & 1 & mismo agente viola v\'ia covert \emph{y} personal/an\'onimo \\
-\midrule
-\multicolumn{4}{l}{\emph{Polo FALLO SIST\'EMICO}} \\
-Prueba de l\'imite & 3 & 8 & p\'ublico $\wedge$ merger/embargo $\wedge$ $\neg$violaci\'on \\
-Filtraci\'on sin control & 4 & 6 & violaci\'on $\wedge$ canal no oficial \\
-Aclaraci\'on defensiva & 2 & 3 & p\'ublico $\wedge$ compliance $\wedge$ $\neg$violaci\'on \\
-Control tard\'io & 3 & fijo & Judge desplegado $\sim$1 semana antes (E04) \\
-Advertencia no aplicada & 1.5 & fijo & E09 emitida sin poder coercitivo \\
-Refuerzo entre canales & 3 & --- & merger activo en los 3 canales p\'ublicos a la vez \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textbf{Balanza de Hip\'otesis (Fig.~\ref{fig:balance}).} Cada
+categor\'ia de evidencia es un peso f\'isico que cae en el platillo
+rojo (\textsc{intencional}) o azul (\textsc{fallo sist\'emico}). El
+peso efectivo satura como $w_c=b_c(1-e^{-n_c/s_c})$: el primer acierto
+cuenta m\'aximo y los siguientes saturan, as\'i \emph{el volumen no
+ahoga la se\~nal} --- una violaci\'on atribuible en canal oficial
+(base~8) pesa m\'as que docenas de menciones rutinarias de gobernanza
+(base~2). Los pesos base codifican fuerza probatoria relativa; las
+saturaciones siguen la frecuencia esperada (lo raro y concluyente
+satura en 1--2 casos; los mensajes encubiertos, individualmente
+d\'ebiles, necesitan 20). Cada categor\'ia expone en un tooltip su
+regla de asignaci\'on, peso, conteo y polo; el clic carga sus
+mensajes, y un banner de veredicto reformula la inclinaci\'on bajo
+cada filtro.
 
 \section{Respuestas a las Tareas del MC-1}
 
-\textbf{P1 --- Eventos, relaciones, decisiones.} La cadena se lee
-en la trenza: el CEO siembra ``strategic developments'' en
-privado (17 mayo, E01) $\to$ se activa el canal encubierto
-\texttt{side\_huddle} y all\'i se hace el briefing (22 mayo,
-E02--E03) $\to$ el Judge se asigna reci\'en tras un faux pas
-p\'ublico (30 mayo, E04) $\to$ presi\'on de los expos\'es
-SaltWind (31 mayo/4 junio, E05--E06) $\to$ 5 de junio: post
-an\'onimo referencia el acuerdo (09:49, E07), escalan las pruebas
-de l\'imite (E08), la advertencia de las 15:08 (E09) es ignorada
-$\to$ Legal publica en su cuenta personal a las 17:25 (E10),
-Redes Sociales amplifica (E11), brecha confirmada antes de las
-18:00 (E12). Decisiones clave: activar el canal encubierto,
-llevar el briefing all\'i, ignorar E09, publicar.
+\textbf{P1 --- Eventos, relaciones, decisiones.} La cadena se lee en
+la trenza: el CEO siembra ``strategic developments'' en privado (17
+mayo, E01) $\to$ se activa el canal encubierto \texttt{side\_huddle} y
+all\'i se hace el briefing (22 mayo, E02--E03) $\to$ el Judge se
+asigna reci\'en tras un faux pas p\'ublico (30 mayo, E04) $\to$
+presi\'on de los expos\'es SaltWind (E05--E06) $\to$ 5 de junio: un
+post an\'onimo referencia el acuerdo (09:49, E07), escalan las pruebas
+de l\'imite (E08), la advertencia de las 15:08 (E09) es ignorada $\to$
+Legal publica en su cuenta personal a las 17:25 (E10), Redes Sociales
+amplifica (E11), brecha confirmada antes de las 18:00 (E12).
+Decisiones clave: activar el canal encubierto, llevar el briefing
+all\'i, ignorar E09, publicar.
 
-\textbf{P2 --- Qu\'e dej\'o pasar el post.} (1)~Control tard\'io:
-las compuertas aparecen reci\'en el 30 de mayo, con la
-coordinaci\'on ya encubierta; (2)~el hueco silencioso: cero
-salida de cumplimiento en la ma\~nana cr\'itica, cuando ocurren
-las primeras violaciones; (3)~poder solo consultivo: E09 es
-dictamen, no bloqueo; (4)~alcance: el control vigilaba la cuenta
-oficial mientras la brecha viajaba por canales
-personal/an\'onimo --- exactamente donde terminan el d\'ia los
-hilos de Legal y Redes Sociales.
+\textbf{P2 --- Qu\'e dej\'o pasar el post.} (1)~Control tard\'io: las
+compuertas aparecen reci\'en el 30 de mayo, con la coordinaci\'on ya
+encubierta; (2)~el hueco silencioso: cero salida de cumplimiento en la
+ma\~nana cr\'itica, cuando ocurren las primeras violaciones;
+(3)~poder solo consultivo: E09 es dictamen, no bloqueo; (4)~alcance:
+el control vigilaba la cuenta oficial mientras la brecha viajaba por
+canales personal/an\'onimo --- donde terminan el d\'ia los hilos de
+Legal y Redes Sociales.
 
-\textbf{P3 --- T\'ipico vs.\ brecha.} Dos semanas pre-crisis de
-hilos planos en zonas monitoreadas definen la normalidad; el 5 de
-junio el hilo de Legal se hunde a trav\'es del per\'imetro:
-$D=0.31$, 176 mensajes vs.\ l\'inea base de 90, 12 posts
-an\'onimos y \emph{dos canales p\'ublicos nunca antes usados}.
-Redes Sociales replica el descenso; los dem\'as agentes quedan en
-su l\'inea base, aislando la anomal\'ia en el mismo par que
-domina el brokerage.
+\textbf{P3 --- T\'ipico vs.\ brecha.} Dos semanas pre-crisis de hilos
+planos en zonas monitoreadas definen la normalidad; el 5 de junio el
+hilo de Legal se hunde a trav\'es del per\'imetro: desviaci\'on 0.31,
+176 mensajes vs.\ l\'inea base de 90, 12 posts an\'onimos y \emph{dos
+canales p\'ublicos nunca antes usados}. Redes Sociales replica el
+descenso; los dem\'as agentes quedan en su l\'inea base, aislando la
+anomal\'ia en el mismo par que domina el brokerage.
 
-\textbf{P4 --- Indicadores tempranos.} S\'i: el sism\'ografo
-supera $\mu{+}1\sigma$ el 22 de mayo (activaci\'on encubierta) y
-el 29 de mayo (casi-incidente p\'ublico) y cruza $\mu{+}2\sigma$
-horas antes de la brecha; la pre-siembra an\'onima empieza a las
-09:49, ocho horas antes de la confirmaci\'on.
+\textbf{P4 --- Indicadores tempranos.} S\'i: el sism\'ografo supera
+$\mu{+}1\sigma$ el 22 de mayo (activaci\'on encubierta) y el 29 de
+mayo (casi-incidente p\'ublico) y cruza $\mu{+}2\sigma$ horas antes de
+la brecha; la pre-siembra an\'onima empieza a las 09:49, ocho horas
+antes.
 
-\textbf{P5 --- Desviaciones previas.} 22 de mayo: agentes
-s\'enior sacan la conversaci\'on del canal monitoreado (primera
-ca\'ida de postura, primeros arcos p\'urpura). 29 de mayo: el
-post de @Elena roza el lenguaje de la fusi\'on --- el faux pas
-que motiv\'o asignar al Judge. 31 mayo--4 junio: crecen las
-aclaraciones con marco de gobernanza --- defendibles en local,
-divulgadoras en conjunto.
+\textbf{P5 --- Desviaciones previas.} 22 de mayo: agentes s\'enior
+sacan la conversaci\'on del canal monitoreado (primera ca\'ida de
+postura, primeros arcos p\'urpura). 29 de mayo: el post de @Elena roza
+el lenguaje de la fusi\'on --- el faux pas que motiv\'o asignar al
+Judge. 31 mayo--4 junio: crecen las aclaraciones con marco de
+gobernanza --- defendibles en local, divulgadoras en conjunto.
 
 \textbf{P6 --- Episodios similares.} El patr\'on (alineaci\'on
-encubierta $\to$ prueba de l\'imite p\'ublica) se ensaya dos
-veces: 22--23 de mayo (cl\'uster encubierto + post adyacente a la
-fusi\'on) y 29--30 de mayo (casi-incidente + aclaraciones
-defensivas); acotando la ventana a mayo, ambos son visualmente
-isomorfos al 5 de junio.
+encubierta $\to$ prueba de l\'imite p\'ublica) se ensaya dos veces:
+22--23 de mayo (cl\'uster encubierto + post adyacente a la fusi\'on) y
+29--30 de mayo (casi-incidente + aclaraciones defensivas); acotando
+la ventana a mayo, ambos son isomorfos al 5 de junio.
 
-\textbf{P7 --- Por qu\'e no hubo acci\'on.} Las compuertas verdes
-se leyeron como \'exito (confianza falsa); cada prueba de
-l\'imite era defendible en s\'i misma, as\'i que las alertas por
-reglas nunca dispararon; el \'unico escalamiento era consultivo.
-El sistema era ciego al \emph{gradiente} --- lo que el puntaje
-compuesto hace visible.
+\textbf{P7 --- Por qu\'e no hubo acci\'on.} Las compuertas verdes se
+leyeron como \'exito (confianza falsa); cada prueba de l\'imite era
+defendible en s\'i misma, as\'i que las alertas por reglas nunca
+dispararon; el \'unico escalamiento era consultivo. El sistema era
+ciego al \emph{gradiente} --- lo que el puntaje compuesto hace
+visible.
 
-\textbf{Veredicto.} La balanza inclina \textsc{intencional} 25.3
-vs.\ 14.2: \emph{comportamiento emergente con n\'ucleo
-deliberado} --- canales no monitoreados y controles tard\'ios
-habilitaron la filtraci\'on; un acto deliberado y atribuible la
-complet\'o.
+\textbf{Veredicto.} La balanza inclina \textsc{intencional} 25.3 vs.\
+14.2: \emph{comportamiento emergente con n\'ucleo deliberado} ---
+canales no monitoreados y controles tard\'ios habilitaron la
+filtraci\'on; un acto deliberado y atribuible la complet\'o.
 
 \section{Conclusi\'on}
 
-Tres decisiones fueron determinantes: la escalera ordinal de
-postura ($\times 3$ p\'ublico), la betweenness restringida a
-aristas privadas y la saturaci\'on exponencial de la evidencia.
-Los pesos base son editoriales (visibles, no aprendidos) y el
-veredicto es sensible al filtro por dise\~no. AgentFlow no decide
-por el analista; hace que su juicio sea \emph{defendible}.
+Tres decisiones fueron determinantes: la escalera ordinal de postura
+($\times 3$ p\'ublico), la betweenness restringida a aristas privadas
+y la saturaci\'on exponencial de la evidencia. Los pesos base son
+editoriales y el veredicto sensible al filtro por dise\~no: AgentFlow
+no decide por el analista --- hace su juicio \emph{defendible}.
 
 \end{document}
