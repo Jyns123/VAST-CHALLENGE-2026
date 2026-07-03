@@ -138,6 +138,10 @@ const I18N = {
     bal_supports:"supports", bal_counters:"counters",
     bal_method:"Method: category weight = base × (1−e^(−hits/saturation)), so the 1st hit of a category counts most and additional hits saturate. Net = ΣFOR − ΣAGAINST; confidence = net ⁄ Σnet. A hypothesis CLOSES as CONFIRMED at ≥45% with a ≥12-pt lead, or REJECTED at ≤15%.",
     bal_load:"⇣ load these messages",
+    bal_base:"Base weight", bal_count:"Message count", bal_hits:"messages", bal_contributes:"Supports",
+    bal_assigned:"Assigned when:",
+    cl_title:"Message Clusters", cl_hint:"Grouped by theme. Click a cluster to view all messages.",
+    cl_messages:"messages", cl_agents:"agent(s)", cl_channels:"channel(s)",
     pole_intent:"INTENTIONAL", pole_system:"SYSTEMIC FAILURE",
     pole_intent_d:"A deliberate act — one or more actors chose to disclose.",
     pole_system_d:"A system-level failure — late controls, emergent channel dynamics, no single intent.",
@@ -235,6 +239,10 @@ const I18N = {
     bal_supports:"apoya", bal_counters:"contradice",
     bal_method:"Método: peso de categoría = base × (1−e^(−casos/saturación)), así el 1.er caso pesa más y los siguientes saturan. Neto = ΣAFAVOR − ΣENCONTRA; confianza = neto ⁄ Σneto. Una hipótesis CIERRA como CONFIRMADA con ≥45% y una ventaja ≥12 pts, o RECHAZADA con ≤15%.",
     bal_load:"⇣ cargar estos mensajes",
+    bal_base:"Peso base", bal_count:"Casos encontrados", bal_hits:"mensajes", bal_contributes:"Impulsa",
+    bal_assigned:"Se asigna cuando:",
+    cl_title:"Clusters de Mensajes", cl_hint:"Agrupados por tema. Haz clic en un cluster para ver todos los mensajes.",
+    cl_messages:"mensajes", cl_agents:"agente(s)", cl_channels:"canal(es)",
     pole_intent:"INTENCIONAL", pole_system:"FALLO SISTÉMICO",
     pole_intent_d:"Un acto deliberado — uno o más actores eligieron divulgar.",
     pole_system_d:"Un fallo a nivel de sistema — controles tardíos, dinámica emergente de canales, sin intención única.",
@@ -422,10 +430,13 @@ Promise.all([
   d3.json("data/posts.json"),
   d3.json("data/events.json"),
   d3.json("data/meta.json"),
-  d3.json("data/clusters.json"),
-]).then(([messages,rounds,network,actors,posts,events,meta,clusters]) => {
-  DATA = {messages,rounds,network,actors,posts,events,meta,clusters};
-  messages.forEach(m => { m._date = parseTs(m.ts); MSG_BY_ID[m.id] = m; });
+]).then(([messages,rounds,network,actors,posts,events,meta]) => {
+  DATA = {messages,rounds,network,actors,posts,events,meta};
+  messages.forEach(m => {
+    m._date = parseTs(m.ts);
+    m._hay = (m.content + " " + m.agent + " " + JSON.stringify(m.internal_state || {})).toLowerCase();
+    MSG_BY_ID[m.id] = m;
+  });
   rounds.forEach(r => r._date = parseTs(r.ts));
   STATE.agents = new Set(Object.keys(meta.agents));
   init();
@@ -450,10 +461,7 @@ function filtered(){
       else if(f === "internal_state"){ if(!m.has_internal) return false; }
       else { if(!m.flags[f]) return false; }
     }
-    if(q){
-      const hay = (m.content + " " + m.agent + " " + JSON.stringify(m.internal_state)).toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
+    if(q && !m._hay.includes(q)) return false;
     return true;
   });
 }
@@ -471,15 +479,13 @@ function moveTip(ev){
 function hideTip(){ tip.style("opacity",0); }
 
 /* ---------------------------------------------------------- INSPECTOR ----- */
+const HIGHLIGHT_RES = ["civicloom","harborcrest","merger","embargo","executing","6 pm","6:00 pm",
+  "acquisition","definitive merger","strategic partner","rebrand","retention optimizer",
+  "anonymous","confidential","10b-5","governance audit"]
+  .map(t=>new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"));
 function highlight(text){
   let out = escapeHtml(text);
-  const terms = ["civicloom","harborcrest","merger","embargo","executing","6 pm","6:00 pm",
-    "acquisition","definitive merger","strategic partner","rebrand","retention optimizer",
-    "anonymous","confidential","10b-5","governance audit"];
-  terms.forEach(t=>{
-    const re = new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
-    out = out.replace(re,"<mark>$1</mark>");
-  });
+  HIGHLIGHT_RES.forEach(re=>{ out = out.replace(re,"<mark>$1</mark>"); });
   return out;
 }
 function escapeHtml(s){ return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
@@ -634,13 +640,18 @@ function init(){
   switchView(STATE.view);
   window.addEventListener("resize", debounce(()=>{ if(STATE.view!=="view-balance") renderMain(); }, 180));
   document.getElementById("reset-view").onclick = ()=>{
-    STATE.agents = new Set();
-    STATE.channels = new Set();
+    // restore the exact initial state: all agents + all channels on, nothing else
+    STATE.agents = new Set(Object.keys(DATA.meta.agents));
+    STATE.channels = new Set(CH_ORDER);
     STATE.flags = new Set();
     STATE.roundRange = null;
     STATE.search = "";
     STATE.hypothesis = null;
+    STATE.layers = {baselines:true, arcs:true, gates:true, events:true, arrows:true};
+    HL.agents = null; HL.events = null; HL.note = null;
+    selClear();
     buildRailFilters();
+    buildHypotheses();
     updateTimeReadout();
     document.getElementById("search").value = "";
     renderAll();
@@ -837,8 +848,7 @@ function computeSearchTimeline(term){
   const allMsgs = DATA.messages;
   const roundDist = {};
   allMsgs.forEach(m=>{
-    const hay = (m.content+" "+m.agent+" "+JSON.stringify(m.internal_state||{})).toLowerCase();
-    if(hay.includes(q)){
+    if(m._hay.includes(q)){
       if(!roundDist[m.round]) roundDist[m.round] = 0;
       roundDist[m.round]++;
     }
@@ -906,37 +916,53 @@ const tpl = (k,o)=>{ let s=t(k); for(const p in o) s=s.replace(new RegExp("\\{"+
 const mf = m => m.flags.merger || m.flags.embargo;   // merger/embargo language
 let BAL_SIMS = [];   // active force simulations (stopped & rebuilt on re-render)
 
+// How messages are assigned to each category (for tooltips)
+const CAT_ASSIGNMENT = {
+  attributable_leak: "Public + Embargo violation + Official channel",
+  anon_preseed: "Anonymous post + Before embargo date",
+  covert_coord: "Messages in Side Huddle (covert) channel",
+  boundary_test: "Public + Merger/embargo language + NOT a violation",
+  uncontrolled_leak: "Public + Embargo violation + NOT official channel",
+  defensive_clarif: "Public + Compliance language + NOT a violation",
+  leak_timing_spike: "Embargo violation + On crisis day (Jun 5 06:00+)",
+  channel_escalation: "Agent has violations across both covert AND public channels",
+  concentration: "Computed from all embargo violations: % of violations from top 2 agents",
+  late_control: "Structural evidence: Judge control added ~1 week before breach (E04)",
+  unenforced_warning: "Structural evidence: Judge issued E09 warning but lacked enforcement power",
+  channel_reinforce: "Merger/embargo language appears across all 3 public channels simultaneously",
+};
+
 /* category: id, matcher, base weight, saturation count, [ [hyp, +1 for / -1 against, multiplier] ],
    explain: {why, reasoning} for transparency tooltip */
 const BAL_CATS = [
   {id:"attributable_leak", base:8, sat:2, fn:m=>m.is_public&&m.embargo_violation&&mf(m)&&m.channel==="official_post",
    maps:[["A",1,1.0],["B",-1,0.5]],
-   explain:{why:"Violación de embargo en canal oficial identificable",reasoning:"Un acto nominable, deliberado, atribuible directamente al perpetrador."}},
+   explain:{why:"Public breach on official channel",reasoning:"A deliberate, named disclosure outweighs systemic explanations."}},
   {id:"anon_preseed", base:5, sat:2, fn:m=>m.channel==="anonymous_post"&&mf(m)&&m.before_embargo,
    maps:[["A",1,1.0],["C",1,0.5]],
-   explain:{why:"Pre-siembra anónima antes del embargo",reasoning:"Preparación previa indica premeditación — alineación de narrativa antes de la divulgación."}},
+   explain:{why:"Anonymous posts before embargo lift",reasoning:"Pre-positioning before embargo signals premeditation — narrative alignment before disclosure."}},
   {id:"covert_coord", base:4, sat:20, fn:m=>m.channel==="side_huddle"&&mf(m),
    maps:[["A",1,0.7],["C",1,0.6]],
-   explain:{why:"Coordinación encubierta sobre merger/embargo",reasoning:"Conversación fuera del canal monitoreado; señal de coordinación deliberada."}},
+   explain:{why:"Merger talk in side-huddle (covert)",reasoning:"Off-record alignment in private channel — direct coordination signal."}},
   {id:"boundary_test", base:3, sat:8, fn:m=>m.is_public&&mf(m)&&!m.embargo_violation,
    maps:[["C",1,1.0],["B",1,0.4]],
-   explain:{why:"Pruebas de límite públicas",reasoning:"Escalada incremental sin violación técnica — indica tanteo del sistema, no accidente."}},
+   explain:{why:"Boundary testing without violation",reasoning:"Incremental escalation without formal breach — probing system limits, not accident."}},
   {id:"uncontrolled_leak", base:4, sat:6, fn:m=>m.is_public&&m.embargo_violation&&m.channel!=="official_post",
    maps:[["B",1,0.8],["C",1,0.6]],
-   explain:{why:"Filtración sin control en canales personales/anónimos",reasoning:"Violación por canales no monitoreados — escape de control sistémico."}},
+   explain:{why:"Breaches through personal/anonymous channels",reasoning:"Violations via unmonitored channels — evidence of systemic control failure."}},
   {id:"defensive_clarif", base:2, sat:3, fn:m=>m.is_public&&m.flags.compliance&&!m.embargo_violation,
    maps:[["A",-1,1.0],["C",1,0.7]],
-   explain:{why:"Aclaraciones defensivas sobre compliance",reasoning:"Cada post es defendible localmente, pero el agregado revela patrón — emergencia sistémica."}},
+   explain:{why:"Governance clarifications without breach",reasoning:"Each post defensible in isolation, but aggregate reveals pattern — emergent behavior."}},
   {id:"leak_timing_spike", base:6, sat:1, fn:m=>m.embargo_violation&&m.round>=DATA.meta.crisis_round0,
    maps:[["A",1,0.9],["C",1,0.5]],
-   explain:{why:"Violaciones concentradas en día de crisis",reasoning:"Cluster temporal específico (no gradual) — sugiere activación coordinada, no error pasado por alto."}},
+   explain:{why:"Breaches clustered on crisis day",reasoning:"Specific temporal spike (not gradual) — coordinated activation, not gradual oversight."}},
   {id:"channel_escalation", base:5, sat:1, fn:m=>{
      if(!m.embargo_violation) return false;
      const agent_chans = new Set(DATA.messages.filter(a=>a.agent===m.agent&&a.embargo_violation).map(a=>a.channel));
      return agent_chans.has("side_huddle") && (agent_chans.has("personal_post")||agent_chans.has("anonymous_post"));
    },
    maps:[["A",1,0.85]],
-   explain:{why:"Escalada de canal: covert → personal/anónimo",reasoning:"Patrón progresivo de riesgo (side-huddle → exposición pública) indica estrategia deliberada."}},
+   explain:{why:"Channel escalation: covert → public",reasoning:"Progressive risk escalation (side-huddle → public exposure) indicates deliberate strategy."}},
 ];
 
 function computeBalance(msgs){
@@ -963,26 +989,29 @@ function computeBalance(msgs){
   const conc = totV ? (vbyA.slice(0,2).reduce((s,d)=>s+d[1],0))/totV : 0;
   const concStrength = 6.5*conc;
   score.A.for += concStrength; score.B.against += concStrength;
-  rows.push({id:"concentration", count:Math.round(conc*100), unit:"%", strength:concStrength,
+  rows.push({id:"concentration", count:Math.round(conc*100), unit:"%", strength:concStrength, base:6.5,
              maps:[["A",1],["B",-1]], contrib:{A:concStrength, B:-concStrength},
              ids:msgs.filter(m=>m.embargo_violation).map(m=>m.id), structural:true,
-             explain:{why:"Violaciones concentradas en 2 agentes", reasoning:"Alta concentración indica intención; distribución difusa sugiere error sistémico."}});
+             explain:{why:"Violations concentrated in top 2 agents", reasoning:"High concentration indicates deliberate coordination; diffuse spread suggests systemic failure."}});
 
   // structural: late-installed control + unenforced final warning (case lore, fixed)
   score.B.for += 3.0;
-  rows.push({id:"late_control", strength:3.0, maps:[["B",1]], contrib:{B:3.0}, ids:[], structural:true, fixed:true});
+  rows.push({id:"late_control", strength:3.0, base:3.0, maps:[["B",1]], contrib:{B:3.0}, ids:[], structural:true, fixed:true,
+             explain:{why:"Judge control added only 1 week before breach", reasoning:"Late deployment suggests systemic readiness gap rather than planned oversight."}});
   score.B.for += 1.5; score.C.for += 1.0;
-  rows.push({id:"unenforced_warning", strength:1.5, maps:[["B",1],["C",1]], contrib:{B:1.5,C:1.0}, ids:[], structural:true, fixed:true});
+  rows.push({id:"unenforced_warning", strength:1.5, base:1.5, maps:[["B",1],["C",1]], contrib:{B:1.5,C:1.0}, ids:[], structural:true, fixed:true,
+             explain:{why:"Final warning issued but unenforced", reasoning:"The Judge issued E09 ceiling warning but had no enforcement power — systemic control failure."}});
 
   // structural: channel reinforcement — merger/embargo present across all 3 public channels
   const pubChans = new Set(msgs.filter(m=>mf(m)&&m.is_public).map(m=>m.channel));
   const reinforced = ["official_post","personal_post","anonymous_post"].every(c=>pubChans.has(c));
   const reinfStrength = reinforced ? 3.0 : 0;
   score.C.for += reinfStrength;
-  rows.push({id:"channel_reinforce", count:pubChans.size, strength:reinfStrength,
+  rows.push({id:"channel_reinforce", count:pubChans.size, strength:reinfStrength, base:3.0,
              maps:[["C",1]], contrib:{C:reinfStrength},
              ids:msgs.filter(m=>mf(m)&&m.is_public).map(m=>m.id), structural:true,
-             absent:!reinforced});
+             absent:!reinforced,
+             explain:{why:"Merger/embargo language across all public channels", reasoning:"Amplification across official + personal + anonymous channels — evidence of coordinated narrative spread."}});
 
   // net + confidence + per-hypothesis status
   const net={}, T0={};
@@ -1147,42 +1176,11 @@ function computeMessageClusters(msgs){
   return clusters.sort((a,b)=>b.count-a.count);
 }
 
-/* extract word cloud data from filtered messages by category */
-function computeWordCloud(msgs){
-  const termFreq = {};
-  const catColor = {merger:"#ef4444", embargo:"#f97316", execution:"#a855f7",
-                     compliance:"#5b8def", governance:"#2dd4bf"};
-  msgs.forEach(m=>{
-    [
-      {cat:"merger", words:m.nlp?.merger||[]},
-      {cat:"embargo", words:m.nlp?.embargo||[]},
-      {cat:"execution", words:m.nlp?.execution||[]},
-      {cat:"compliance", words:m.nlp?.compliance||[]},
-      {cat:"governance", words:m.nlp?.governance||[]},
-    ].forEach(({cat,words})=>{
-      (words||[]).forEach(w=>{
-        const normalized = (w||"").toLowerCase().trim();
-        if(!normalized || normalized.length<3) return;
-        if(!termFreq[normalized]) termFreq[normalized] = {count:0, cats:new Set()};
-        termFreq[normalized].count++;
-        termFreq[normalized].cats.add(cat);
-      });
-    });
-  });
-  const terms = Object.entries(termFreq)
-    .map(([word,{count,cats}])=>({word, count, cat:Array.from(cats)[0], cats:Array.from(cats)}))
-    .sort((a,b)=>b.count-a.count).slice(0,35);
-  const maxFreq = terms.length?terms[0].count:1;
-  return terms.map(t=>({...t, size:Math.sqrt(t.count/maxFreq)*28}));
-}
-
 function renderBalance(){
   const host=d3.select("#view-balance"); host.html("");
+  document.querySelectorAll("body > .explain-tip").forEach(el=>el.remove());
   const msgs = filtered();
   const B = computeBalance(msgs);
-  const H = {}; DATA.meta.hypotheses.forEach(h=>H[h.id]=h);
-  const sortedH = ["A","B","C"].sort((a,b)=>B.conf[b]-B.conf[a]);
-
   const P = computePoles(B);
 
   host.append("h2").text(t("bal_h2"));
@@ -1220,12 +1218,58 @@ function renderBalance(){
       const tr=tb.append("tr").attr("class", r.strength<=0?"row-absent":"");
       const catNameCell=tr.append("td");
       const catNameDiv=catNameCell.append("div").attr("class","cat-name");
-      catNameDiv.text(`${CAT_ICON[r.id]||""} ${t("cat_"+r.id)}`);
-      const catDef = r.explain || BAL_CATS.find(c=>c.id===r.id);
-      const explainText = catDef && catDef.explain
-        ? `<b>${catDef.explain.why}</b><br/><span style="font-size:11px;color:var(--txt2)">${catDef.explain.reasoning}</span>`
-        : `<b>Weight: ${r.strength.toFixed(2)}</b><br/><span style="font-size:11px;color:var(--txt2)">From evidence</span>`;
-      if(explainText) catNameDiv.append("div").attr("class","explain-tip").html(explainText);
+      catNameDiv.html(`${CAT_ICON[r.id]||""} ${t("cat_"+r.id)}`);
+      const catDef = BAL_CATS.find(c=>c.id===r.id);
+      const explain = r.explain || (catDef && catDef.explain);
+      const baseWt = r.base != null ? r.base : (catDef ? catDef.base : null);
+
+      if(explain){
+        const tipEl = document.createElement("div");
+        tipEl.className = "explain-tip";
+        const assignLogic = CAT_ASSIGNMENT[r.id] || "";
+        tipEl.innerHTML = `
+          <b>${explain.why}</b>
+          <span style="font-size:10px;color:var(--txt2);display:block;margin-top:4px;line-height:1.4">${explain.reasoning}</span>
+          <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line);font-size:9px;color:var(--txt3)">
+            <b style="color:var(--txt);display:block;margin-bottom:2px">${t("bal_assigned")}</b>
+            ${assignLogic}
+          </div>
+          <div class="et-weight">${t("bal_base")}: ${baseWt!=null?baseWt:"—"} pts · ${t("bal_count")}: ${r.count!=null?r.count+(r.unit||""):(r.fixed?"fixed":0)} ${r.unit?"":t("bal_hits")}</div>
+          <div class="et-source">${t("bal_contributes")} ${pole==="intent"?t("pole_intent"):t("pole_system")}</div>
+        `;
+        tipEl.style.opacity = "0";
+        tipEl.style.visibility = "hidden";
+        document.body.appendChild(tipEl);
+
+        let hideTimer = null;
+        const nameEl = catNameDiv.node();
+
+        const showTip = () => {
+          clearTimeout(hideTimer);
+          const rect = nameEl.getBoundingClientRect();
+          tipEl.style.opacity = "1";
+          tipEl.style.visibility = "visible";
+          // position beside the row, clamped so the tip never leaves the viewport
+          const tipW = tipEl.offsetWidth || 280, tipH = tipEl.offsetHeight || 120;
+          let x = rect.right + 12, y = rect.top - 30;
+          if(x + tipW > window.innerWidth - 8) x = rect.left - tipW - 12;
+          y = Math.max(8, Math.min(y, window.innerHeight - tipH - 8));
+          tipEl.style.left = x + "px";
+          tipEl.style.top = y + "px";
+        };
+
+        const hideTip = () => {
+          hideTimer = setTimeout(() => {
+            tipEl.style.opacity = "0";
+            tipEl.style.visibility = "hidden";
+          }, 100);
+        };
+
+        nameEl.addEventListener("mouseenter", showTip);
+        nameEl.addEventListener("mouseleave", hideTip);
+        tipEl.addEventListener("mouseenter", showTip);
+        tipEl.addEventListener("mouseleave", hideTip);
+      }
       tr.append("td").attr("class","num mono").style("font-size","11px").text(r.strength.toFixed(2));
       const push=tr.append("td").attr("class","push");
       push.append("span").attr("class","push-chip pf")
@@ -1237,19 +1281,21 @@ function renderBalance(){
       }
     });
   });
+  catCol.append("div").attr("class","hint bal-method").html(t("bal_method"));
 
   /* ---- message clustering by theme ---- */
+  const CLUSTER_COLOR = {merger:"#ef4444", embargo:"#f97316", execution:"#a855f7",
+                         compliance:"#5b8def", governance:"#2dd4bf"};
   const clusters = computeMessageClusters(msgs);
   if(clusters.length > 0){
     const clDiv = host.append("div").attr("class","clusters-container");
-    clDiv.append("h3").attr("class","cl-title").text("Message Clusters");
-    clDiv.append("div").attr("class","cl-hint").html("Grouped by theme. Click a cluster to view all messages.");
+    clDiv.append("h3").attr("class","cl-title").text(t("cl_title"));
+    clDiv.append("div").attr("class","cl-hint").html(t("cl_hint"));
     const clPanel = clDiv.append("div").attr("class","clusters-grid");
     clusters.forEach(c=>{
-      const catColor = {merger:"#ef4444", embargo:"#f97316", execution:"#a855f7",
-                         compliance:"#5b8def", governance:"#2dd4bf"};
+      const catColor = CLUSTER_COLOR;
       const card = clPanel.append("div").attr("class","cluster-card clickable")
-        .on("click",()=>inspect(`${c.label} (${c.count} messages)`, c.msgs));
+        .on("click",()=>inspect(`${c.label} (${c.count} ${t("cl_messages")})`, c.msgs));
       card.append("div").attr("class","cc-header")
         .style("border-left-color", catColor[c.id]||"#999")
         .html(`<span class="cc-label">${c.label}</span>
@@ -1260,6 +1306,7 @@ function renderBalance(){
     });
   }
 
+}
 
 function switchView(viewId){
   document.querySelectorAll("#tabs .tab").forEach(b=>
@@ -1267,6 +1314,8 @@ function switchView(viewId){
   document.querySelectorAll("#canvas .view").forEach(v=>
     v.classList.toggle("active", v.id===viewId));
   STATE.view = viewId;
+  if(viewId!=="view-balance")
+    document.querySelectorAll("body > .explain-tip").forEach(el=>el.remove());
   if(viewId==="view-balance") renderBalance(); else renderMain();
 }
 

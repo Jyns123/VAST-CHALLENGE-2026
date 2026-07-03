@@ -1,9 +1,11 @@
-# HarborCrest — Investigative Visual Analytics Platform
+# AgentFlow — Investigative Visual Analytics Platform
 ### VAST Challenge 2026 · Mini-Challenge 1 · TenantThread Embargo Breach
 
 An investigation console (not a dashboard) for reconstructing how embargoed
 **Project HarborCrest** merger information reached the public **FleX** platform ~35
-minutes before the 6:00 PM, June 5 2046 embargo. Built with **D3.js v7**, plain HTML/CSS/JS.
+minutes before the 6:00 PM, June 5 2046 embargo. Built with **D3.js v7**, plain HTML/CSS/JS —
+no frameworks, no build step. Bilingual UI (**English default**, Spanish toggle) with a light
+"case-file dossier" theme and a dark "night console" theme.
 
 ---
 
@@ -29,9 +31,9 @@ http://localhost:8000/index.html
 ## Project structure
 
 ```
-index.html        Single-page shell (header KPIs, control rail, inspector, 🧭 questions FAB)
-style.css         "Investigation console" dark theme
-app.js            D3 application — ONE condensed multi-layer view + evidence inspector
+index.html        Single-page shell (header KPIs, tabs, control rail, inspector, 🧭 questions FAB)
+style.css         Light "case-file dossier" theme + dark "night console" override
+app.js            D3 application — braid view + hypothesis balance + evidence inspector, EN/ES i18n
 scripts/
   transform.py    Data transformation, feature engineering, scoring, NLP, graph metrics
 data/             Derived datasets (generated)
@@ -47,9 +49,10 @@ docs/
   nlp_methodology.md            Lexicon-based text features
 ```
 
-## One view, many layers — the Behavioral Drift Braid
+## Main view — the Behavioral Drift Braid
 
-Instead of tabs, the entire investigation is condensed into **one composited canvas**:
+The investigation is condensed into **one composited canvas** (plus a dedicated
+**Hypothesis Balance** tab for the final weighing of evidence, described below):
 
 | Layer | Investigative question it answers |
 |---|---|
@@ -68,54 +71,64 @@ glyph, arc, gate, event, or hypothesis loads the underlying communications into 
 **Evidence Inspector**; clicking an agent's name at the right edge of the braid opens its
 behavioral profile (expected vs. observed channel mix).
 
+**Filter ergonomics:** every filter group (actors, channels, evidence flags) has
+**[all] / [none]** bulk buttons; the topbar **Reset** button returns to the initial
+unfiltered view in one click. Searching a term also renders a **per-round sparkline**
+under the search box showing *when* that term is mentioned — spikes reveal sudden,
+coordinated activation rather than gradual drift.
+
 ---
 
-## Hypothesis Balance Tab — Advanced Analytics
+## Hypothesis Balance Tab — weighing INTENTIONAL vs SYSTEMIC FAILURE
 
-The **Hypothesis Balance** tab provides deep evidence synthesis for the central question: *Was the breach deliberate or systemic?*
+The **Hypothesis Balance** tab answers the challenge's central question — *was the breach
+deliberate or systemic?* — with a **physical two-pan balance**: every evidence category is a
+weight that drops into the red **INTENTIONAL** pan or the blue **SYSTEMIC FAILURE** pan, and
+the beam tilts toward whichever side carries more. A **VERDICT banner** states the current
+lean in plain language, re-computed live from whatever the global filters select.
 
-### Evidence Weighting with Explanations
-Each evidence category carries a weight with diminishing returns (saturation), preventing volume from drowning signal.
-Hover over any category to see the **investigative reasoning** behind its weight:
+The balance and its **Evidence Category ledger sit side-by-side**, so the tilt and the
+numbers behind it are visible at the same time. The layout is fully filter-responsive:
+narrow the time window or the actors and the whole tab re-weighs.
 
-- **Attributable leak** (■ weight 8): Public violation on official channel—a deliberate, named disclosure.
-- **Anonymous pre-seeding** (◆ weight 5): Posts before embargo lifted—indicates premeditatio.
-- **Covert coordination** (◉ weight 4): Merger talk in side-huddle—off-record alignment.
-- **Breach concentration** (● weight 6.5×): High concentration among 2 agents → intent; diffuse → systemic.
-- **Leak timing spike** (▲ weight 6): Violations clustered on crisis day, not gradual—suggests coordinated activation.
-- **Channel escalation** (▶ weight 5): Agents progressing side-huddle → personal/anonymous—deliberate strategy.
+### Evidence categories — transparent weights
+Each category has a **base weight** and a **saturation count**; effective weight =
+`base × (1 − e^(−hits/saturation))`, so the *first* occurrences count most and volume
+cannot drown signal. **Hovering any category** opens a tooltip that discloses everything:
 
-The balance **tilts** toward **INTENTIONAL** or **SYSTEMIC FAILURE** based on net evidence.
+- **Why** it matters investigatively, and the reasoning behind it.
+- **Assigned when** — the exact rule that routes a message into the category
+  (e.g. *Attributable leak* = "Public + Embargo violation + Official channel").
+- **Base weight · message count** — the inputs of the formula above.
+- **Which pole it supports** (INTENTIONAL or SYSTEMIC FAILURE).
 
-### Message Clustering by Theme
-Automatically groups communications by semantic category (Merger, Embargo, Governance, etc.).
-Each cluster shows:
-- **Count**: Total messages matching this theme
-- **Agents**: How many agents participated (concentration = intent signal)
-- **Channels**: Where coordination occurred
-- **Timespan**: When activity spiked
+The categories, with base weights:
 
-Click any cluster to load all messages in the Evidence Inspector. Patterns emerge visually:
-- High agent concentration in "Covert Coordination" = deliberate planning
-- Governance language cluster predating Merger language = cover narrative
+| Pole | Category | Base | Rule (summarised) |
+|---|---|---|---|
+| 🔴 Intent | 📣 Attributable public leak | 8 | violation on the *official* channel — a named, deliberate act |
+| 🔴 Intent | 👤 Anonymous pre-seeding | 5 | anonymous merger posts *before* the embargo — premeditation |
+| 🔴 Intent | 🤝 Covert coordination | 4 | merger/embargo talk in the side-huddle |
+| 🔴 Intent | 👥 Breach concentration | 6.5× | share of violations by the top-2 agents (structural) |
+| 🔴 Intent | ⏱ Breach timing cluster | 6 | violations clustered on crisis day, not gradual |
+| 🔴 Intent | 📈 Channel escalation chain | 5 | same agent breaches via covert *and* personal/anonymous channels |
+| 🔵 System | 🚧 Boundary testing | 3 | public near-miss posts that skirt the line |
+| 🔵 System | 💧 Uncontrolled public leak | 4 | violations on unmonitored personal/anonymous channels |
+| 🔵 System | 🛡 Defensive clarification | 2 | "just clarifying" compliance-framed posts |
+| 🔵 System | ⏰ Late-installed control | 3 (fixed) | the Judge was added ~1 week before the breach (E04) |
+| 🔵 System | ⚠ Unenforced final warning | 1.5 (fixed) | E09 ceiling warning issued but never enforced |
+| 🔵 System | 🔁 Channel reinforcement | 3 | merger language live on all 3 public channels at once |
 
-### Dominant Terms (Word Cloud)
-Frequency-weighted cloud of keywords extracted from filtered messages.
-- **Size** = how often the term appears in current view
-- **Color** = semantic category (red=merger, orange=embargo, blue=compliance, etc.)
-- **Click** = search for that term across entire dataset
+Clicking any category row loads its matching messages into the Evidence Inspector —
+every weight is auditable down to the raw communications.
 
-Useful for spotting dominant vocabularies in subsets. Example: Filter to "Legal-Agent + Side-Huddle + May 22–Jun 5" 
-and the cloud immediately reveals the term profile ("governance", "confidential", "audit")—the cover strategy becomes visible.
-
-### Temporal Keyword Timeline
-Search any term and see a sparkline showing when it was mentioned across all rounds.
-- Each bar = one round; height = number of mentions
-- Spikes reveal sudden activation (non-gradual = coordinated)
-- Hover shows exact counts
-
-Example: Search "confidential"—it's quiet until Jun 5, then spikes during crisis hours. 
-Same spike pattern across multiple terms (merger, governance, executing) = coordinated, not accidental.
+### Message Clusters
+Below the balance, communications are grouped by semantic theme (Merger, Embargo,
+Execution, Compliance, Governance). Each cluster card shows the **message count**, how many
+**agents** participated (high concentration in few agents = intent signal), how many
+**channels** it spans, and its **timespan**. Clicking a card loads the full cluster into the
+Evidence Inspector. Typical reading: a *Covert Coordination* cluster concentrated in 2
+agents that predates a *Merger* cluster going public is the shape of a planned leak.
 
 ---
 
@@ -127,8 +140,11 @@ Same spike pattern across multiple terms (merger, governance, executing) = coord
 
 ## 1. Decisiones de diseño
 
-**Una sola visualización condensada, no pestañas.** Toda la investigación vive en un único
-lienzo: la **Trenza de Deriva Conductual** (*Behavioral Drift Braid*). Cada agente es un
+**Una visualización condensada + una balanza de síntesis.** La investigación vive en un
+lienzo principal: la **Trenza de Deriva Conductual** (*Behavioral Drift Braid*), acompañada
+de una única pestaña adicional —la **Balanza de Hipótesis**— donde toda la evidencia se pesa
+físicamente entre INTENCIONAL y FALLO SISTÉMICO, con cada peso explicado y auditable
+(regla de asignación, peso base, mensajes que lo sustentan). Cada agente es un
 hilo que recorre una escalera vertical de "postura comunicativa" (arriba = canal de equipo
 monitoreado; abajo = publicación anónima imposible de rastrear). Cruzar el **perímetro rojo
 de aplicación del embargo** significa que el contenido se hizo público. Sobre la misma
@@ -171,9 +187,12 @@ aplastaría las 9 horas críticas frente a las dos semanas previas. Por eso el S
 una escala ordinal por ronda: cada columna pesa igual y el día del incidente recibe el
 espacio que merece.
 
-**Estética de consola oscura.** El tema oscuro con acentos ámbar/rojo para el riesgo no es
-cosmético: dirige la atención del ojo hacia las violaciones (anillos rojos, marcas ✕) y
-hacia el canal encubierto (púrpura) entre cientos de comunicaciones rutinarias.
+**Estética de expediente, con doble tema.** El tema por defecto es un *dossier* claro
+(papel y tinta, sellos de caso) que evoca un expediente forense; un toggle activa la
+"consola nocturna" oscura. En ambos, los acentos rojo/naranja del riesgo no son cosméticos:
+dirigen el ojo hacia las violaciones (anillos rojos, marcas ✕) y hacia el canal encubierto
+(púrpura) entre cientos de comunicaciones rutinarias. Se eliminó el amarillo puro de toda
+la interfaz por su bajo contraste sobre ambos fondos.
 
 ## 2. Justificación analítica
 
@@ -259,4 +278,5 @@ aquí el mapeo capa → tarea:
 - Braid posture = per-round channel average with public messages weighted ×3 (external
   exposure should move the thread visibly); the composite anomaly formula is printed in
   the seismograph header and is fully auditable.
-# VAST-CHALLENGE-2026
+- Balance method: category weight = base × (1−e^(−hits/saturation)); the beam tilt is
+  `tanh` of the pan-weight difference, so extreme imbalances stay readable.
