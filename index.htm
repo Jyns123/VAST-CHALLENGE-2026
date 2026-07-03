@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UTEC-Ordonez-MC1 &mdash; VAST Challenge 2026 Mini-Challenge 1</title>
+<style>
+  body{font-family:Georgia,'Times New Roman',serif;max-width:900px;margin:0 auto;
+       padding:32px 24px;color:#1a1a1a;line-height:1.55}
+  h1{font-size:26px;margin-bottom:2px}
+  h2{font-size:20px;border-bottom:2px solid #8a1c1c;padding-bottom:4px;margin-top:36px}
+  h3{font-size:16px;margin-top:24px}
+  .meta{background:#f6f3ea;border:1px solid #d8d0bc;border-radius:6px;padding:14px 18px;margin:18px 0}
+  .meta p{margin:6px 0}
+  .primary{font-weight:bold;color:#8a1c1c}
+  figure{margin:18px 0;text-align:center}
+  figure img{max-width:100%;border:1px solid #ccc}
+  figcaption{font-size:13px;color:#555;margin-top:6px;font-style:italic}
+  .answer{margin:10px 0 26px}
+  ul{margin-top:4px}
+</style>
+</head>
+<body>
+
+<h1>Entry Name: &ldquo;UTEC-Ordonez-MC1&rdquo;</h1>
+<p><b>VAST Challenge 2026 &mdash; Mini-Challenge 1: TenantThread Embargo Breach</b></p>
+
+<div class="meta">
+<p><b>Team Members:</b></p>
+<p class="primary">Jyns Arturo Ord&oacute;&ntilde;ez Del Carpio, Universidad de Ingenier&iacute;a y Tecnolog&iacute;a (UTEC), jyns.ordonez@utec.edu.pe &nbsp;&nbsp;PRIMARY</p>
+<p>Bihonda Epiro, Universidad de Ingenier&iacute;a y Tecnolog&iacute;a (UTEC), bihonda.epiro@utec.edu.pe</p>
+<p>Cesar Pajuelo, Universidad de Ingenier&iacute;a y Tecnolog&iacute;a (UTEC), cesar.pajuelo@utec.edu.pe</p>
+
+<p><b>Student Team:</b> YES</p>
+
+<p><b>Tools Used:</b></p>
+<ul>
+  <li><b>AgentFlow</b> &mdash; a custom investigative visual-analytics platform (plain HTML/CSS/JavaScript + D3.js v7, no frameworks) developed by the team for this challenge.</li>
+  <li><b>Python 3</b> &mdash; reproducible feature-engineering pipeline (<code>scripts/transform.py</code>): NLP lexicons, risk scoring, network metrics, behavioral baselines.</li>
+</ul>
+
+<p><b>Approximately how many hours were spent working on this submission in total?</b> ~120 hours</p>
+
+<p><b>May we post your submission in the Visual Analytics Benchmark Repository after VAST Challenge 2026 is complete?</b> YES</p>
+
+<p><b>Video:</b> <a href="video/agentflow-mc1-video.mp4">video/agentflow-mc1-video.mp4</a></p>
+</div>
+
+<h2>Questions</h2>
+
+<!-- ══════════════════════════════ Q1 ══════════════════════════════ -->
+<h3>1. What were the key events and relationships that led up to the inappropriate release?
+Visualize the sequence of events (key actions, causal relationships, decision points and
+actors, and the decisions/system elements that let the post past embargo enforcement).</h3>
+
+<div class="answer">
+<p>
+AgentFlow anchors the curated causal chain E01&ndash;E12 directly onto each actor's thread in the
+<b>Behavioral Drift Braid</b> (Fig. 1.1) and lays it out in time order in the <b>Critical Path</b>
+(Fig. 1.2). The sequence reads: the CEO privately seeds &ldquo;strategic developments&rdquo;
+(May 17, E01) &rarr; a covert <i>side_huddle</i> channel is activated and the merger briefing is
+held there (May 22, E02&ndash;E03) &rarr; The Judge is assigned only after @Elena's public faux pas
+(May 30, E04) &rarr; external pressure from the SaltWind expos&eacute;s (May 31 / Jun 4, E05&ndash;E06)
+&rarr; on June 5 an anonymous post references the deal (09:49, E07), boundary tests escalate (E08),
+The Judge issues a ceiling warning at 15:08 (E09) that is ignored &rarr; Legal posts on its personal
+account at 17:25 (E10), Social-Media amplifies (E11), and the breach is confirmed before 18:00 (E12).
+The key decision points are: activating the covert channel, holding the briefing there, ignoring E09,
+and the final decision to post.
+</p>
+<p>
+Four system elements let the post past enforcement, all visible on the braid: (1) <b>late control</b>
+&mdash; Judge gates only appear from May 30, after coordination had gone covert; (2) the
+<b>&ldquo;JUDGE SILENT&rdquo;</b> band &mdash; zero compliance output during the crisis-morning hours
+when the first violations occurred; (3) <b>advisory-only power</b> &mdash; the 15:08 warning is a
+ruling, not a block; (4) <b>scope</b> &mdash; enforcement watched the official account, while the
+breach travelled through the personal and anonymous channels, exactly where the Legal and
+Social-Media threads end the day.
+</p>
+
+<figure>
+  <img src="figures/q1_braid_event_chain.png" alt="Behavioral Drift Braid with the causal chain E01-E12 pinned to agent threads">
+  <figcaption>Fig. 1.1 &mdash; Behavioral Drift Braid: agent threads on the covert&rarr;public posture ladder, causal chain E01&ndash;E12, covert arcs, Judge gates and the JUDGE SILENT band.</figcaption>
+</figure>
+<figure>
+  <img src="figures/q1_critical_path.png" alt="Critical Path: the 12-step causal chain in time order with time gaps">
+  <figcaption>Fig. 1.2 &mdash; Critical Path: the 12 steps with exact timestamps and time gaps (&Delta;) &mdash; weeks of build-up, then detonation within minutes.</figcaption>
+</figure>
+<figure>
+  <img src="figures/q1_enforcement_bypass.png" alt="Key Questions panel focused on enforcement bypass with linked evidence">
+  <figcaption>Fig. 1.3 &mdash; &ldquo;Enforcement bypass&rdquo; question preset: the braid refocuses and the written answer links its evidence.</figcaption>
+</figure>
+</div>
+
+<!-- ══════════════════════════════ Q2 ══════════════════════════════ -->
+<h3>2. The evasion of the embargo was a new behavior. Provide visual analytics that discover and
+illustrate the typical behavior of systems/agents/people involved. How does the behavior that led
+to the release compare to the prior behaviors?</h3>
+
+<div class="answer">
+<p>
+Typical behavior is defined <i>visually</i>: each agent's dotted <b>baseline</b> is the mean
+(&plusmn;&sigma;) of its communication posture over the pre-crisis rounds, drawn on the same ladder
+the threads travel (Fig. 2.1). For two weeks every thread holds flat in the monitored/private zones;
+posture is computed per round as the channel average with public messages weighted &times;3, so any
+public exposure visibly pulls a thread down.
+</p>
+<p>
+On June 5 the behavior breaks pattern in a way the braid makes literal: the <b>Legal</b> thread dives
+across the red enforcement perimeter into zones it had never occupied. Its behavioral profile
+(Fig. 2.2) quantifies the deviation: L1 deviation 0.31, 176 crisis-day messages vs. a 90-message
+baseline, 12 anonymous posts, 47 covert messages, and &mdash; the core anomaly &mdash; <b>two public
+channels never used in baseline</b> (anonymous and personal, flagged &ldquo;NEW&rdquo; in the profile).
+Social-Media mirrors the dive; Quality, PR and the interns stay near baseline, isolating the anomaly
+to exactly two actors. The same two agents dominate the covert channel (restricted betweenness:
+Legal 0.36; brokerage: Social-Media 1.00, Legal 0.78), i.e., the internal&rarr;public conduit and the
+breach executors are the same pair.
+</p>
+
+<figure>
+  <img src="figures/q2_baselines.png" alt="Braid with expected baseline layer enabled, showing flat pre-crisis threads">
+  <figcaption>Fig. 2.1 &mdash; Expected baselines vs. observed threads: pre-crisis normality, then the June 5 dive of Legal and Social-Media.</figcaption>
+</figure>
+<figure>
+  <img src="figures/q2_legal_profile.png" alt="Legal agent behavioral profile: baseline vs crisis-day channel mix, new channels flagged">
+  <figcaption>Fig. 2.2 &mdash; Legal's behavioral profile: expected vs. observed channel mix; colored segments appearing only in the bottom bar are channels never used before.</figcaption>
+</figure>
+</div>
+
+<!-- ══════════════════════════════ Q3 ══════════════════════════════ -->
+<h3>3. Were there leading indicators that such a release was possible? (prior expected-vs-actual
+deviations; other occasions with breach-like behaviors; why prior occasions produced no action)</h3>
+
+<div class="answer">
+<p>
+<b>Leading indicators &mdash; yes.</b> The <b>seismograph</b> (Fig. 3.1) scores every round with a
+composite anomaly (lexical sensitivity &times;0.4 + covert messages &times;1 + boundary tests
+&times;3 + violations &times;6) against pre-crisis &mu;+1&sigma;/&mu;+2&sigma; thresholds. It exceeds
++1&sigma; on <b>May 22</b> (covert-channel activation) and <b>May 29</b> (public near-incident), and
+crosses +2&sigma; hours before the breach; anonymous pre-seeding starts at 09:49 on June 5, eight
+hours before the confirmed breach.
+</p>
+<p>
+<b>Prior deviations.</b> May 22: two senior agents move merger talk off the monitored channel (first
+posture drop; purple co-participation arcs). May 29: @Elena's public post skirts merger language
+&mdash; the faux pas that triggered The Judge's assignment. May 31&ndash;Jun 4: governance-framed
+public &ldquo;clarifications&rdquo; rise &mdash; each locally defensible, jointly disclosing.
+</p>
+<p>
+<b>Similar episodes.</b> The breach pattern (covert alignment &rarr; public boundary test) rehearses
+twice at smaller scale: May 22&ndash;23 (covert cluster + merger-adjacent public post) and May
+29&ndash;30 (near-incident + defensive clarifications). Brushing the time window to May makes both
+rehearsals visually isomorphic to June 5 (Fig. 3.2).
+</p>
+<p>
+<b>Why no action.</b> Every green Judge gate was read as success (May 30&ndash;Jun 4 containments bred
+false confidence); each boundary test was individually defensible, so rule-based alerts never fired;
+and the only escalation mechanism was advisory. The system punished blunt violations but was blind to
+the <i>gradient</i> &mdash; which is precisely what the composite score makes visible.
+</p>
+
+<figure>
+  <img src="figures/q3_seismograph.png" alt="Leading-indicator seismograph with +1 sigma and +2 sigma thresholds and the May 22 / May 29 exceedances">
+  <figcaption>Fig. 3.1 &mdash; Leading-indicator seismograph: May 22 and May 29 exceed +1&sigma;; +2&sigma; is crossed hours before the breach; tick rows count covert / boundary / violation events per round.</figcaption>
+</figure>
+<figure>
+  <img src="figures/q3_may_rehearsals.png" alt="Braid brushed to May showing the two smaller-scale rehearsals of the breach pattern">
+  <figcaption>Fig. 3.2 &mdash; Time window brushed to May: the two smaller-scale rehearsals of the covert&rarr;public pattern.</figcaption>
+</figure>
+<figure>
+  <img src="figures/q3_balance.png" alt="Hypothesis Balance tilting INTENTIONAL 25.3 vs SYSTEMIC FAILURE 14.2 with the evidence category ledger">
+  <figcaption>Fig. 3.3 &mdash; Hypothesis Balance: twelve auditable evidence categories tilt the scale 25.3 vs. 14.2 toward a breach with a deliberate core; hovering any category discloses its assignment rule and weight.</figcaption>
+</figure>
+</div>
+
+<h2>Reflection Questions (Optional)</h2>
+<h3>1. What was the most difficult part of working on this year&rsquo;s data? What could have made it more accessible?</h3>
+<div class="answer">
+<p>
+The hardest part was that the ground truth is distributed and graded: no single record is
+&ldquo;the leak,&rdquo; so naive filtering finds nothing and full reading is infeasible. We had to
+engineer intermediate, auditable signals (lexicon families &mdash; especially the
+&ldquo;governance&rdquo; cover vocabulary &mdash; posture, coordination windows, restricted
+betweenness) before any visualization was meaningful. Irregular sampling (daily, then hourly) also
+breaks linear timelines; an ordinal round scale was required. A machine-readable event/channel
+codebook and explicit channel-visibility semantics in the data dictionary would have made the
+dataset considerably more accessible.
+</p>
+</div>
+
+</body>
+</html>
