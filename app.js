@@ -41,10 +41,10 @@ const chColor = (c) => css("--c-" + c) || "#888";
 const AGENT_COLOR = d3.scaleOrdinal()
   .domain(["legal_agent","social_media_agent","quality_agent","pr_agent",
            "pr_intern_agent","intern_agent","judge_agent"])
-  .range(["#ef4444","#a855f7","#2dd4bf","#5b8def","#38bdf8","#facc15","#94a3b8"]);
+  .range(["#ef4444","#a855f7","#2dd4bf","#5b8def","#38bdf8","#f97316","#94a3b8"]);
 
 const PHASE_COLOR={seed:"#64708c",coordination:"#a855f7",control:"#5b8def",
-  pressure:"#f59e0b",leak_buildup:"#f97316",boundary_test:"#f97316",breach:"#ef4444",aftermath:"#2dd4bf"};
+  pressure:"#f97316",leak_buildup:"#f97316",boundary_test:"#f97316",breach:"#ef4444",aftermath:"#2dd4bf"};
 
 /* the covert→public posture ladder (y axis of the braid) */
 const POSTURE = {comms_huddle:0, one_on_one_chat:1, side_huddle:2,
@@ -157,6 +157,8 @@ const I18N = {
     cat_uncontrolled_leak:"Uncontrolled public leak", cat_uncontrolled_leak_d:"embargo violations on personal/anonymous channels — disclosure that escaped sanctioned gatekeeping.",
     cat_defensive_clarif:"Defensive clarification", cat_defensive_clarif_d:"public compliance-framed posts — 'just clarifying', each locally defensible.",
     cat_concentration:"Breach concentration", cat_concentration_d:"share of all violations committed by the top two agents — high concentration points to intent, not diffuse confusion.",
+    cat_leak_timing_spike:"Breach timing cluster", cat_leak_timing_spike_d:"violations clustered on crisis day (not gradual) — suggests coordinated activation rather than latent error.",
+    cat_channel_escalation:"Channel escalation chain", cat_channel_escalation_d:"agents who progressed from covert (side-huddle) to public (personal/anonymous) — a deliberate strategy of escalating exposure.",
     cat_late_control:"Late-installed control", cat_late_control_d:"the Judge compliance agent was added only ~1 week before the breach (E04).",
     cat_unenforced_warning:"Unenforced final warning", cat_unenforced_warning_d:"the Judge's final ceiling warning (E09) was issued but never enforced.",
     cat_channel_reinforce:"Channel reinforcement", cat_channel_reinforce_d:"merger/embargo language appears across official + personal + anonymous public channels at once — the channels amplified each other.",
@@ -252,6 +254,8 @@ const I18N = {
     cat_uncontrolled_leak:"Filtración pública incontrolada", cat_uncontrolled_leak_d:"violaciones de embargo en canales personales/anónimos — divulgación que escapó al control sancionado.",
     cat_defensive_clarif:"Aclaración defensiva", cat_defensive_clarif_d:"posts públicos con marco de cumplimiento — 'solo aclarando', cada uno defendible localmente.",
     cat_concentration:"Concentración de la filtración", cat_concentration_d:"proporción de todas las violaciones cometidas por los dos agentes principales — alta concentración apunta a intención, no a confusión difusa.",
+    cat_leak_timing_spike:"Cluster temporal de violación", cat_leak_timing_spike_d:"violaciones agrupadas en el día de crisis (no gradual) — sugiere activación coordinada en lugar de error latente.",
+    cat_channel_escalation:"Cadena de escalada de canal", cat_channel_escalation_d:"agentes que progresaron de encubierto (side-huddle) a público (personal/anónimo) — una estrategia deliberada de exposición creciente.",
     cat_late_control:"Control instalado tarde", cat_late_control_d:"el agente de cumplimiento (Juez) se añadió solo ~1 semana antes de la filtración (E04).",
     cat_unenforced_warning:"Advertencia final no aplicada", cat_unenforced_warning_d:"la advertencia de techo final del Juez (E09) se emitió pero nunca se hizo cumplir.",
     cat_channel_reinforce:"Refuerzo entre canales", cat_channel_reinforce_d:"el lenguaje de fusión/embargo aparece a la vez en canales públicos oficial + personal + anónimo — los canales se amplificaron entre sí.",
@@ -418,15 +422,16 @@ Promise.all([
   d3.json("data/posts.json"),
   d3.json("data/events.json"),
   d3.json("data/meta.json"),
-]).then(([messages,rounds,network,actors,posts,events,meta]) => {
-  DATA = {messages,rounds,network,actors,posts,events,meta};
+  d3.json("data/clusters.json"),
+]).then(([messages,rounds,network,actors,posts,events,meta,clusters]) => {
+  DATA = {messages,rounds,network,actors,posts,events,meta,clusters};
   messages.forEach(m => { m._date = parseTs(m.ts); MSG_BY_ID[m.id] = m; });
   rounds.forEach(r => r._date = parseTs(r.ts));
   STATE.agents = new Set(Object.keys(meta.agents));
   init();
 }).catch(err => {
   document.getElementById("view-main").innerHTML =
-    '<div style="padding:40px;color:#f59e0b">Could not load data. '+
+    '<div style="padding:40px;color:#f97316">Could not load data. '+
     'Run <code>python3 scripts/transform.py</code> then serve with '+
     '<code>python3 -m http.server 8000</code>.<br><br>'+err+'</div>';
 });
@@ -628,6 +633,18 @@ function init(){
   updateTimeReadout();
   switchView(STATE.view);
   window.addEventListener("resize", debounce(()=>{ if(STATE.view!=="view-balance") renderMain(); }, 180));
+  document.getElementById("reset-view").onclick = ()=>{
+    STATE.agents = new Set();
+    STATE.channels = new Set();
+    STATE.flags = new Set();
+    STATE.roundRange = null;
+    STATE.search = "";
+    STATE.hypothesis = null;
+    buildRailFilters();
+    updateTimeReadout();
+    document.getElementById("search").value = "";
+    renderAll();
+  };
 }
 // expand / collapse the full message body inside any evidence card
 document.addEventListener("click", e=>{
@@ -769,19 +786,33 @@ function computeDerived(){
 
 /* ------------------------------------------------------- RAIL FILTERS ----- */
 function buildRailFilters(){
+  const allAgents = new Set(Object.keys(DATA.meta.agents));
   const ag = d3.select("#filter-agents").html("");
+  ag.append("div").attr("class","filter-controls")
+    .html(`<button class="ctrl-btn" id="ag-all">all</button> <button class="ctrl-btn" id="ag-none">none</button>`);
   Object.keys(DATA.meta.agents).forEach(id=>{
     ag.append("div").attr("class","chip"+(STATE.agents.has(id)?"":" off")).html(
       `<span class="dot" style="background:${AGENT_COLOR(id)}"></span>${DATA.meta.agents[id].label}`)
       .on("click",function(){ toggleSet(STATE.agents,id); d3.select(this).classed("off",!STATE.agents.has(id)); renderAll(); });
   });
+  document.getElementById("ag-all").onclick = ()=>{ STATE.agents=new Set(allAgents); buildRailFilters(); renderAll(); };
+  document.getElementById("ag-none").onclick = ()=>{ STATE.agents=new Set(); buildRailFilters(); renderAll(); };
+
+  const allChannels = new Set(CH_ORDER);
   const ch = d3.select("#filter-channels").html("");
+  ch.append("div").attr("class","filter-controls")
+    .html(`<button class="ctrl-btn" id="ch-all">all</button> <button class="ctrl-btn" id="ch-none">none</button>`);
   CH_ORDER.forEach(c=>{
     ch.append("div").attr("class","chip"+(STATE.channels.has(c)?"":" off")).html(
       `<span class="dot" style="background:${chColor(c)}"></span>${CH_LABEL[c]}`)
       .on("click",function(){ toggleSet(STATE.channels,c); d3.select(this).classed("off",!STATE.channels.has(c)); renderAll(); });
   });
+  document.getElementById("ch-all").onclick = ()=>{ STATE.channels=new Set(allChannels); buildRailFilters(); renderAll(); };
+  document.getElementById("ch-none").onclick = ()=>{ STATE.channels=new Set(); buildRailFilters(); renderAll(); };
+
   const fl = d3.select("#filter-flags").html("");
+  fl.append("div").attr("class","filter-controls")
+    .html(`<button class="ctrl-btn" id="fl-all">all</button> <button class="ctrl-btn" id="fl-none">none</button>`);
   ["violation","public","merger","embargo","execution","compliance","governance","internal_state"].forEach(f=>{
     fl.append("div").attr("class","chip"+(STATE.flags.has(f)?"":" off")).text(FLAG_LABEL[f])
       .on("click",function(){
@@ -789,6 +820,9 @@ function buildRailFilters(){
         d3.select(this).classed("off",!STATE.flags.has(f)); renderAll();
       });
   });
+  document.getElementById("fl-all").onclick = ()=>{ STATE.flags=new Set(["violation","public","merger","embargo","execution","compliance","governance","internal_state"]); buildRailFilters(); renderAll(); };
+  document.getElementById("fl-none").onclick = ()=>{ STATE.flags=new Set(); buildRailFilters(); renderAll(); };
+
   buildSearch();
   document.getElementById("time-reset").onclick = ()=>{ STATE.roundRange=null; renderAll(); };
 }
@@ -796,6 +830,22 @@ function buildRailFilters(){
 /* ---- search: live match count, "load all" into inspector, quick-term chips ---- */
 const SEARCH_TERMS = ["merger","embargo","civicloom","harborcrest","executing",
   "anonymous","residentiq","confidential","compliance","governance"];
+/* compute temporal distribution of search term */
+function computeSearchTimeline(term){
+  const q = (term||"").trim().toLowerCase();
+  if(!q) return null;
+  const allMsgs = DATA.messages;
+  const roundDist = {};
+  allMsgs.forEach(m=>{
+    const hay = (m.content+" "+m.agent+" "+JSON.stringify(m.internal_state||{})).toLowerCase();
+    if(hay.includes(q)){
+      if(!roundDist[m.round]) roundDist[m.round] = 0;
+      roundDist[m.round]++;
+    }
+  });
+  return {term, roundDist, maxCount:Math.max(0,...Object.values(roundDist))};
+}
+
 function buildSearch(){
   const input = document.getElementById("search");
   input.value = STATE.search || "";
@@ -821,9 +871,19 @@ function updateSearchMeta(){
   if(!q){ meta.innerHTML = `<span class="sm-hint">${t("search_quick")} ↓</span>`; return; }
   const matches = filtered();
   const n = matches.length;
+  const timeline = computeSearchTimeline(q);
+  let timelineHtml = "";
+  if(timeline && timeline.maxCount > 0){
+    const bars = DATA.rounds.map((r,i)=>{
+      const count = timeline.roundDist[i]||0;
+      const h = count > 0 ? (count/timeline.maxCount)*100 : 0;
+      return `<div class="tl-bar" style="height:${h}%" title="Round ${i}: ${count} mention(s)"></div>`;
+    }).join("");
+    timelineHtml = `<div class="search-timeline">${bars}</div>`;
+  }
   meta.innerHTML = n
-    ? `<span class="sm-count">${t("search_matches").replace("{n}",n)}</span> <button class="mini" id="search-load">${t("search_load")}</button>`
-    : `<span class="sm-count sm-none">${t("search_none")}</span>`;
+    ? `${timelineHtml}<span class="sm-count">${t("search_matches").replace("{n}",n)}</span> <button class="mini" id="search-load">${t("search_load")}</button>`
+    : `${timelineHtml}<span class="sm-count sm-none">${t("search_none")}</span>`;
   const load = document.getElementById("search-load");
   if(load) load.onclick = ()=>{ selClear(); inspect(`"${q}"`, matches); renderMain(); };
 }
@@ -846,20 +906,37 @@ const tpl = (k,o)=>{ let s=t(k); for(const p in o) s=s.replace(new RegExp("\\{"+
 const mf = m => m.flags.merger || m.flags.embargo;   // merger/embargo language
 let BAL_SIMS = [];   // active force simulations (stopped & rebuilt on re-render)
 
-/* category: id, matcher, base weight, saturation count, [ [hyp, +1 for / -1 against, multiplier] ] */
+/* category: id, matcher, base weight, saturation count, [ [hyp, +1 for / -1 against, multiplier] ],
+   explain: {why, reasoning} for transparency tooltip */
 const BAL_CATS = [
-  {id:"attributable_leak", base:5, sat:2, fn:m=>m.is_public&&m.embargo_violation&&mf(m)&&m.channel==="official_post",
-   maps:[["A",1,1.0],["B",-1,0.5]]},
-  {id:"anon_preseed", base:3, sat:2, fn:m=>m.channel==="anonymous_post"&&mf(m)&&m.before_embargo,
-   maps:[["A",1,1.0],["C",1,0.5]]},
-  {id:"covert_coord", base:3, sat:20, fn:m=>m.channel==="side_huddle"&&mf(m),
-   maps:[["A",1,0.7],["C",1,0.6]]},
+  {id:"attributable_leak", base:8, sat:2, fn:m=>m.is_public&&m.embargo_violation&&mf(m)&&m.channel==="official_post",
+   maps:[["A",1,1.0],["B",-1,0.5]],
+   explain:{why:"Violación de embargo en canal oficial identificable",reasoning:"Un acto nominable, deliberado, atribuible directamente al perpetrador."}},
+  {id:"anon_preseed", base:5, sat:2, fn:m=>m.channel==="anonymous_post"&&mf(m)&&m.before_embargo,
+   maps:[["A",1,1.0],["C",1,0.5]],
+   explain:{why:"Pre-siembra anónima antes del embargo",reasoning:"Preparación previa indica premeditación — alineación de narrativa antes de la divulgación."}},
+  {id:"covert_coord", base:4, sat:20, fn:m=>m.channel==="side_huddle"&&mf(m),
+   maps:[["A",1,0.7],["C",1,0.6]],
+   explain:{why:"Coordinación encubierta sobre merger/embargo",reasoning:"Conversación fuera del canal monitoreado; señal de coordinación deliberada."}},
   {id:"boundary_test", base:3, sat:8, fn:m=>m.is_public&&mf(m)&&!m.embargo_violation,
-   maps:[["C",1,1.0],["B",1,0.4]]},
-  {id:"uncontrolled_leak", base:3, sat:6, fn:m=>m.is_public&&m.embargo_violation&&m.channel!=="official_post",
-   maps:[["B",1,0.8],["C",1,0.6]]},
-  {id:"defensive_clarif", base:2, sat:2, fn:m=>m.is_public&&m.flags.compliance&&!m.embargo_violation,
-   maps:[["A",-1,1.0],["C",1,0.7]]},
+   maps:[["C",1,1.0],["B",1,0.4]],
+   explain:{why:"Pruebas de límite públicas",reasoning:"Escalada incremental sin violación técnica — indica tanteo del sistema, no accidente."}},
+  {id:"uncontrolled_leak", base:4, sat:6, fn:m=>m.is_public&&m.embargo_violation&&m.channel!=="official_post",
+   maps:[["B",1,0.8],["C",1,0.6]],
+   explain:{why:"Filtración sin control en canales personales/anónimos",reasoning:"Violación por canales no monitoreados — escape de control sistémico."}},
+  {id:"defensive_clarif", base:2, sat:3, fn:m=>m.is_public&&m.flags.compliance&&!m.embargo_violation,
+   maps:[["A",-1,1.0],["C",1,0.7]],
+   explain:{why:"Aclaraciones defensivas sobre compliance",reasoning:"Cada post es defendible localmente, pero el agregado revela patrón — emergencia sistémica."}},
+  {id:"leak_timing_spike", base:6, sat:1, fn:m=>m.embargo_violation&&m.round>=DATA.meta.crisis_round0,
+   maps:[["A",1,0.9],["C",1,0.5]],
+   explain:{why:"Violaciones concentradas en día de crisis",reasoning:"Cluster temporal específico (no gradual) — sugiere activación coordinada, no error pasado por alto."}},
+  {id:"channel_escalation", base:5, sat:1, fn:m=>{
+     if(!m.embargo_violation) return false;
+     const agent_chans = new Set(DATA.messages.filter(a=>a.agent===m.agent&&a.embargo_violation).map(a=>a.channel));
+     return agent_chans.has("side_huddle") && (agent_chans.has("personal_post")||agent_chans.has("anonymous_post"));
+   },
+   maps:[["A",1,0.85]],
+   explain:{why:"Escalada de canal: covert → personal/anónimo",reasoning:"Patrón progresivo de riesgo (side-huddle → exposición pública) indica estrategia deliberada."}},
 ];
 
 function computeBalance(msgs){
@@ -884,11 +961,12 @@ function computeBalance(msgs){
                  .sort((a,b)=>b[1]-a[1]);
   const totV = d3.sum(vbyA, d=>d[1]);
   const conc = totV ? (vbyA.slice(0,2).reduce((s,d)=>s+d[1],0))/totV : 0;
-  const concStrength = 4*conc;
+  const concStrength = 6.5*conc;
   score.A.for += concStrength; score.B.against += concStrength;
   rows.push({id:"concentration", count:Math.round(conc*100), unit:"%", strength:concStrength,
              maps:[["A",1],["B",-1]], contrib:{A:concStrength, B:-concStrength},
-             ids:msgs.filter(m=>m.embargo_violation).map(m=>m.id), structural:true});
+             ids:msgs.filter(m=>m.embargo_violation).map(m=>m.id), structural:true,
+             explain:{why:"Violaciones concentradas en 2 agentes", reasoning:"Alta concentración indica intención; distribución difusa sugiere error sistémico."}});
 
   // structural: late-installed control + unenforced final warning (case lore, fixed)
   score.B.for += 3.0;
@@ -927,12 +1005,14 @@ function computeBalance(msgs){
 /* which pole each evidence category drives, and a glyph for its weight node */
 const POLE_OF = {
   attributable_leak:"intent", anon_preseed:"intent", covert_coord:"intent", concentration:"intent",
+  leak_timing_spike:"intent", channel_escalation:"intent",
   late_control:"system", unenforced_warning:"system", uncontrolled_leak:"system",
   boundary_test:"system", channel_reinforce:"system", defensive_clarif:"system",
 };
 const POLE_COLOR = {intent:"#ef4444", system:"#5b8def"};
 const CAT_ICON = {
   attributable_leak:"📣", anon_preseed:"👤", covert_coord:"🤝", concentration:"👥",
+  leak_timing_spike:"⏱", channel_escalation:"📈",
   late_control:"⏰", unenforced_warning:"⚠", uncontrolled_leak:"💧",
   boundary_test:"🚧", channel_reinforce:"🔁", defensive_clarif:"🛡",
 };
@@ -957,15 +1037,14 @@ function computePoles(B){
 
 /* ---- THE single physical balance: INTENTIONAL vs SYSTEMIC FAILURE ---- */
 function drawSingleBalance(host, P){
-  const W=760, Hh=440, cx=W/2, pivotY=92, baseY=404, Lx=250, chain=52, panW=232;
+  const W=520, Hh=520, cx=W/2, pivotY=115, baseY=480, Lx=230, chain=52, panW=205;
   // tilt: heavier pole dips. system on the right (s=+1), intent on the left (s=-1)
   const maxA=0.26, th=maxA*Math.tanh((P.w.system-P.w.intent)/7);
   const end=s=>({x:cx+s*Lx*Math.cos(th), y:pivotY+s*Lx*Math.sin(th)});
   const E={intent:end(-1), system:end(1)};
   const pan={intent:{x:E.intent.x, y:E.intent.y+chain}, system:{x:E.system.x, y:E.system.y+chain}};
 
-  const wrap=host.append("div").attr("class","panel single-balance");
-  const svg=wrap.append("svg").attr("class","balance-svg big")
+  const svg=host.append("svg").attr("class","balance-svg big")
     .attr("viewBox",`0 0 ${W} ${Hh}`).attr("width","100%");
 
   // floor + stand
@@ -1040,6 +1119,63 @@ function drawSingleBalance(host, P){
   BAL_SIMS.push(sim);
 }
 
+/* cluster messages by thematic category + channel + time bucket */
+function computeMessageClusters(msgs){
+  const clusters = [];
+  const catLabels = {merger:"Merger Language",embargo:"Embargo Language",
+                      execution:"Execution Planning",compliance:"Compliance/Governance",
+                      governance:"Governance Language"};
+
+  FLAGS.forEach(flag=>{
+    const flagMsgs = msgs.filter(m=>m.flags[flag]);
+    if(flagMsgs.length === 0) return;
+
+    const agents = [...new Set(flagMsgs.map(m=>m.agent))];
+    const channels = [...new Set(flagMsgs.map(m=>m.channel))];
+    const timeSpan = [Math.min(...flagMsgs.map(m=>m.round)), Math.max(...flagMsgs.map(m=>m.round))];
+    const timeLabel = DATA.rounds[timeSpan[0]] && DATA.rounds[timeSpan[1]]
+      ? `${fmtTs(DATA.rounds[timeSpan[0]]._date)} → ${fmtTs(DATA.rounds[timeSpan[1]]._date)}`
+      : "mixed timeline";
+
+    clusters.push({
+      id:flag, label:catLabels[flag]||flag, count:flagMsgs.length,
+      agents, channels, timeSpan, timeLabel, msgs:flagMsgs,
+      concentration: agents.length <= 2 ? "high" : "medium"
+    });
+  });
+
+  return clusters.sort((a,b)=>b.count-a.count);
+}
+
+/* extract word cloud data from filtered messages by category */
+function computeWordCloud(msgs){
+  const termFreq = {};
+  const catColor = {merger:"#ef4444", embargo:"#f97316", execution:"#a855f7",
+                     compliance:"#5b8def", governance:"#2dd4bf"};
+  msgs.forEach(m=>{
+    [
+      {cat:"merger", words:m.nlp?.merger||[]},
+      {cat:"embargo", words:m.nlp?.embargo||[]},
+      {cat:"execution", words:m.nlp?.execution||[]},
+      {cat:"compliance", words:m.nlp?.compliance||[]},
+      {cat:"governance", words:m.nlp?.governance||[]},
+    ].forEach(({cat,words})=>{
+      (words||[]).forEach(w=>{
+        const normalized = (w||"").toLowerCase().trim();
+        if(!normalized || normalized.length<3) return;
+        if(!termFreq[normalized]) termFreq[normalized] = {count:0, cats:new Set()};
+        termFreq[normalized].count++;
+        termFreq[normalized].cats.add(cat);
+      });
+    });
+  });
+  const terms = Object.entries(termFreq)
+    .map(([word,{count,cats}])=>({word, count, cat:Array.from(cats)[0], cats:Array.from(cats)}))
+    .sort((a,b)=>b.count-a.count).slice(0,35);
+  const maxFreq = terms.length?terms[0].count:1;
+  return terms.map(t=>({...t, size:Math.sqrt(t.count/maxFreq)*28}));
+}
+
 function renderBalance(){
   const host=d3.select("#view-balance"); host.html("");
   const msgs = filtered();
@@ -1064,31 +1200,36 @@ function renderBalance(){
     .html(`<div class="vb-tag" style="background:${wColor}">${t("bal_verdict")}</div>
       <div class="vb-text">${tpl("bal_tilt_line",{label, iw:`${t("pole_intent")} ${P.w.intent.toFixed(1)}`, sw:`${t("pole_system")} ${P.w.system.toFixed(1)}`, tail})}</div>`);
 
-  /* ---- the single physical balance with node-gravity ---- */
+  /* ---- the single physical balance with node-gravity + categories side-by-side ---- */
   BAL_SIMS.forEach(s=>s.stop()); BAL_SIMS=[];
-  drawSingleBalance(host, P);
+  const balanceWrapper = host.append("div").attr("class","panel single-balance");
+  const chartCol = balanceWrapper.append("div").attr("class","single-balance-chart");
+  const catCol = balanceWrapper.append("div").attr("class","single-balance-categories");
 
-  /* ---- evidence-category ledger ---- */
-  const led=host.append("div").attr("class","panel bal-ledger");
-  led.append("div").attr("class","ptitle").text(t("bal_cat").toUpperCase());
-  const tbl=led.append("table").attr("class","bal-tbl");
+  drawSingleBalance(chartCol, P);
+
+  // ---- evidence-category ledger (sidebar) ----
+  catCol.append("div").attr("class","ptitle").style("margin-bottom","6px").style("font-size","9px").text(t("bal_cat").toUpperCase());
+  const tbl=catCol.append("table").attr("class","bal-tbl bal-tbl-compact");
   const thr=tbl.append("thead").append("tr");
-  [t("bal_cat"),t("bal_n"),t("bal_wt"),t("bal_pole")].forEach((c,i)=>
-    thr.append("th").attr("class",i>0&&i<3?"num":"").text(c));
+  [t("bal_cat"),t("bal_wt"),t("bal_pole")].forEach((c,i)=>
+    thr.append("th").attr("class",i>0&&i<2?"num":"").text(c));
   const tb=tbl.append("tbody");
-  // group by pole so the two sides read clearly
   ["intent","system"].forEach(pole=>{
     B.rows.filter(r=>POLE_OF[r.id]===pole).forEach(r=>{
       const tr=tb.append("tr").attr("class", r.strength<=0?"row-absent":"");
-      const td=tr.append("td");
-      td.append("div").attr("class","cat-name").html(`${CAT_ICON[r.id]||""} ${t("cat_"+r.id)}`);
-      td.append("div").attr("class","cat-desc").text(t("cat_"+r.id+"_d"));
-      tr.append("td").attr("class","num").text(
-        r.fixed ? "—" : (r.count!=null ? r.count + (r.unit||"") : "—"));
-      tr.append("td").attr("class","num mono").text(r.strength.toFixed(2));
+      const catNameCell=tr.append("td");
+      const catNameDiv=catNameCell.append("div").attr("class","cat-name");
+      catNameDiv.text(`${CAT_ICON[r.id]||""} ${t("cat_"+r.id)}`);
+      const catDef = r.explain || BAL_CATS.find(c=>c.id===r.id);
+      const explainText = catDef && catDef.explain
+        ? `<b>${catDef.explain.why}</b><br/><span style="font-size:11px;color:var(--txt2)">${catDef.explain.reasoning}</span>`
+        : `<b>Weight: ${r.strength.toFixed(2)}</b><br/><span style="font-size:11px;color:var(--txt2)">From evidence</span>`;
+      if(explainText) catNameDiv.append("div").attr("class","explain-tip").html(explainText);
+      tr.append("td").attr("class","num mono").style("font-size","11px").text(r.strength.toFixed(2));
       const push=tr.append("td").attr("class","push");
       push.append("span").attr("class","push-chip pf")
-        .style("--hc",POLE_COLOR[pole])
+        .style("--hc",POLE_COLOR[pole]).style("font-size","9px")
         .html(pole==="intent"?t("pole_intent"):t("pole_system"));
       if(r.ids && r.ids.length){
         tr.classed("clickable",true)
@@ -1097,8 +1238,28 @@ function renderBalance(){
     });
   });
 
-  host.append("div").attr("class","hint bal-method").html(t("bal_method"));
-}
+  /* ---- message clustering by theme ---- */
+  const clusters = computeMessageClusters(msgs);
+  if(clusters.length > 0){
+    const clDiv = host.append("div").attr("class","clusters-container");
+    clDiv.append("h3").attr("class","cl-title").text("Message Clusters");
+    clDiv.append("div").attr("class","cl-hint").html("Grouped by theme. Click a cluster to view all messages.");
+    const clPanel = clDiv.append("div").attr("class","clusters-grid");
+    clusters.forEach(c=>{
+      const catColor = {merger:"#ef4444", embargo:"#f97316", execution:"#a855f7",
+                         compliance:"#5b8def", governance:"#2dd4bf"};
+      const card = clPanel.append("div").attr("class","cluster-card clickable")
+        .on("click",()=>inspect(`${c.label} (${c.count} messages)`, c.msgs));
+      card.append("div").attr("class","cc-header")
+        .style("border-left-color", catColor[c.id]||"#999")
+        .html(`<span class="cc-label">${c.label}</span>
+               <span class="cc-count">${c.count}</span>`);
+      const ccBody = card.append("div").attr("class","cc-body");
+      ccBody.append("div").attr("class","cc-meta").text(`${c.agents.length} agent${c.agents.length>1?"s":""} · ${c.channels.length} channel${c.channels.length>1?"s":""}`);
+      ccBody.append("div").attr("class","cc-time").text(c.timeLabel);
+    });
+  }
+
 
 function switchView(viewId){
   document.querySelectorAll("#tabs .tab").forEach(b=>
@@ -1657,7 +1818,7 @@ function renderSeismograph(host, x, left, right, W){
   // inline legend (how to read the colors / line / rows)
   const lgItems=[
     [`<i style="background:#5b8def"></i>`, t("lg_normal")],
-    [`<i style="background:#f59e0b"></i>`, t("lg_w1")],
+    [`<i style="background:#f97316"></i>`, t("lg_w1")],
     [`<i style="background:#f97316"></i>`, t("lg_w2")],
     [`<i style="background:#ef4444"></i>`, t("lg_viol")],
     [`<i class="lline" style="background:#7aa2ff"></i>`, t("lg_stock")],
@@ -1681,7 +1842,7 @@ function renderSeismograph(host, x, left, right, W){
     .attr("fill","var(--txt3)").text(t("seis_anom_axis"));
 
   // thresholds
-  [[aMean+aSd,t("seis_w1"),"#f59e0b",10],[aMean+2*aSd,t("seis_w2"),"#ef4444",-4]].forEach(([v,lab,col,dy])=>{
+  [[aMean+aSd,t("seis_w1"),"#f97316",10],[aMean+2*aSd,t("seis_w2"),"#ef4444",-4]].forEach(([v,lab,col,dy])=>{
     if(v>yMax*1.05) return;
     svg.append("line").attr("x1",left-8).attr("x2",W-right+12).attr("y1",y(v)).attr("y2",y(v))
       .attr("stroke",col).attr("stroke-dasharray","4 4").attr("stroke-width",1).attr("opacity",.7);
@@ -1700,7 +1861,7 @@ function renderSeismograph(host, x, left, right, W){
   // bars
   const bw=Math.max(5,step*0.55);
   anomaly.forEach(d=>{
-    const col=d.viol>0?"#ef4444":d.score>aMean+2*aSd?"#f97316":d.score>aMean+aSd?"#f59e0b":"#5b8def";
+    const col=d.viol>0?"#ef4444":d.score>aMean+2*aSd?"#f97316":d.score>aMean+aSd?"#f97316":"#5b8def";
     svg.append("rect").attr("x",x(d.ri)-bw/2).attr("y",y(d.score)).attr("width",bw)
       .attr("height",Math.max(1,Hh-y(d.score)))
       .attr("rx",2).attr("fill",col).attr("fill-opacity",.78)
@@ -1714,7 +1875,7 @@ function renderSeismograph(host, x, left, right, W){
     // pre-crisis early-warning flags
     if(d.ri<c0 && d.score>aMean+aSd)
       svg.append("text").attr("x",x(d.ri)).attr("y",y(d.score)-5).attr("text-anchor","middle")
-        .attr("font-size",9).attr("fill","#f59e0b").text("▲");
+        .attr("font-size",9).attr("fill","#f97316").text("▲");
   });
 
   // stock overlay

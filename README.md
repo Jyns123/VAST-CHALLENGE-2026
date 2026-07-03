@@ -70,6 +70,55 @@ behavioral profile (expected vs. observed channel mix).
 
 ---
 
+## Hypothesis Balance Tab — Advanced Analytics
+
+The **Hypothesis Balance** tab provides deep evidence synthesis for the central question: *Was the breach deliberate or systemic?*
+
+### Evidence Weighting with Explanations
+Each evidence category carries a weight with diminishing returns (saturation), preventing volume from drowning signal.
+Hover over any category to see the **investigative reasoning** behind its weight:
+
+- **Attributable leak** (■ weight 8): Public violation on official channel—a deliberate, named disclosure.
+- **Anonymous pre-seeding** (◆ weight 5): Posts before embargo lifted—indicates premeditatio.
+- **Covert coordination** (◉ weight 4): Merger talk in side-huddle—off-record alignment.
+- **Breach concentration** (● weight 6.5×): High concentration among 2 agents → intent; diffuse → systemic.
+- **Leak timing spike** (▲ weight 6): Violations clustered on crisis day, not gradual—suggests coordinated activation.
+- **Channel escalation** (▶ weight 5): Agents progressing side-huddle → personal/anonymous—deliberate strategy.
+
+The balance **tilts** toward **INTENTIONAL** or **SYSTEMIC FAILURE** based on net evidence.
+
+### Message Clustering by Theme
+Automatically groups communications by semantic category (Merger, Embargo, Governance, etc.).
+Each cluster shows:
+- **Count**: Total messages matching this theme
+- **Agents**: How many agents participated (concentration = intent signal)
+- **Channels**: Where coordination occurred
+- **Timespan**: When activity spiked
+
+Click any cluster to load all messages in the Evidence Inspector. Patterns emerge visually:
+- High agent concentration in "Covert Coordination" = deliberate planning
+- Governance language cluster predating Merger language = cover narrative
+
+### Dominant Terms (Word Cloud)
+Frequency-weighted cloud of keywords extracted from filtered messages.
+- **Size** = how often the term appears in current view
+- **Color** = semantic category (red=merger, orange=embargo, blue=compliance, etc.)
+- **Click** = search for that term across entire dataset
+
+Useful for spotting dominant vocabularies in subsets. Example: Filter to "Legal-Agent + Side-Huddle + May 22–Jun 5" 
+and the cloud immediately reveals the term profile ("governance", "confidential", "audit")—the cover strategy becomes visible.
+
+### Temporal Keyword Timeline
+Search any term and see a sparkline showing when it was mentioned across all rounds.
+- Each bar = one round; height = number of mentions
+- Spikes reveal sudden activation (non-gradual = coordinated)
+- Hover shows exact counts
+
+Example: Search "confidential"—it's quiet until Jun 5, then spikes during crisis hours. 
+Same spike pattern across multiple terms (merger, governance, executing) = coordinated, not accidental.
+
+---
+
 # Explicación del diseño (ES)
 
 > *Las secciones siguientes —decisiones de diseño, justificación analítica y cómo cada
